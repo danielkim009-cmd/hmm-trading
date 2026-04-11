@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMM Regime Terminal – Project Overview</title>
+  <style>
+    /* ── Base ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #09090f;
+      --bg2:       #111118;
+      --bg3:       #18181f;
+      --border:    #2a2a38;
+      --text:      #d0d0e0;
+      --muted:     #666680;
+      --bull:      #00e676;
+      --bear:      #ff1744;
+      --neutral:   #ffd740;
+      --accent:    #00e5ff;
+      --accent2:   #7c3aed;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    code, pre {
+      font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+      background: #0d0d15;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    code { padding: 2px 7px; font-size: 13px; color: var(--accent); }
+    pre  { padding: 16px 20px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+    pre code { background: none; border: none; padding: 0; color: #a0c4ff; }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .page-wrapper { max-width: 1080px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── Hero ───────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 72px 24px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%,
+        rgba(0,229,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .hero p {
+      max-width: 640px;
+      margin: 0 auto 32px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+    .run-cmd {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-family: monospace;
+      font-size: 15px;
+      color: var(--bull);
+    }
+    .run-cmd span { color: var(--muted); font-size: 12px; }
+
+    /* ── Nav ────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9,9,15,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    nav ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 24px;
+      list-style: none;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    nav a {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--accent); text-decoration: none; }
+
+    /* ── Section ─────────────────────────────────────────────── */
+    section { margin-top: 64px; }
+    section h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 24px;
+    }
+    section h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #c0c0d8;
+      margin: 24px 0 10px;
+    }
+    p { margin-bottom: 12px; color: var(--text); }
+
+    /* ── Cards grid ──────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--accent); }
+    .card .file-name {
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--accent);
+      background: rgba(0,229,255,0.07);
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 6px;
+      padding: 3px 10px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 1rem; color: #e0e0f0; }
+    .card p  { font-size: 14px; color: var(--muted); margin: 0; }
+
+    /* ── Feature table ───────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    th {
+      background: var(--bg3);
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ── Regime pills ────────────────────────────────────────── */
+    .pill {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .pill-bull    { background: rgba(0,230,118,0.12); color: var(--bull);    border: 1px solid rgba(0,230,118,0.35); }
+    .pill-bear    { background: rgba(255,23,68,0.12);  color: var(--bear);    border: 1px solid rgba(255,23,68,0.35); }
+    .pill-neutral { background: rgba(255,215,64,0.12); color: var(--neutral); border: 1px solid rgba(255,215,64,0.35); }
+
+    /* ── Check list ──────────────────────────────────────────── */
+    .check-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+      list-style: none;
+    }
+    .check-list li {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .check-list li .num {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0,229,255,0.1);
+      border: 1px solid rgba(0,229,255,0.3);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Flow diagram ────────────────────────────────────────── */
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 20px 0;
+    }
+    .flow-step {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #b0b0cc;
+      white-space: nowrap;
+    }
+    .flow-arrow { color: var(--muted); font-size: 18px; }
+
+    /* ── Metric row ──────────────────────────────────────────── */
+    .metrics-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .metric-card {
+      flex: 1;
+      min-width: 140px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .metric-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    .metric-card .value { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+
+    /* ── New tag ─────────────────────────────────────────────── */
+    .tag-new {
+      display: inline-block;
+      padding: 1px 7px;
+      background: rgba(0,229,255,0.1);
+      border: 1px solid rgba(0,229,255,0.35);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 40px 24px 24px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+      margin-top: 80px;
+    }
+    footer strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<div class="hero">
+  <div class="badge">📡 Algorithmic Trading System</div>
+  <h1>HMM Regime Terminal</h1>
+  <p>
+    A professional regime-based algorithmic trading system that uses a
+    <strong>Gaussian Mixture Model Hidden Markov Model (GMM-HMM)</strong>
+    to detect market states and layers technical confirmation strategies
+    with strict risk management on top.
+  </p>
+  <div class="run-cmd">
+    $ streamlit run dashboard.py
+    <span>— launches the Regime Terminal UI</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════ NAV ════════════════════════ -->
+<nav>
+  <ul>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#hmm">GMM-HMM Engine</a></li>
+    <li><a href="#substates">7 Sub-States</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#regimes">Regimes</a></li>
+    <li><a href="#strategy">Strategy</a></li>
+    <li><a href="#confirmations">Confirmations</a></li>
+    <li><a href="#regime-only">Regime-Only Mode</a></li>
+    <li><a href="#risk">Risk Management</a></li>
+    <li><a href="#optimizer">Parameter Optimizer</a></li>
+    <li><a href="#forecast">Kernel Forecast</a></li>
+    <li><a href="#scanner">Stock Screener</a></li>
+    <li><a href="#dashboard">Dashboard</a></li>
+    <li><a href="#setup">Setup</a></li>
+  </ul>
+</nav>
+
+<div class="page-wrapper">
+
+<!-- ═══════════════════════ ARCHITECTURE ═══════════════ -->
+<section id="architecture">
+  <h2>🏗️ Architecture</h2>
+  <p>
+    The project follows a clean three-layer architecture. Each file has a single
+    responsibility and they compose through simple Python imports.
+  </p>
+
+  <div class="flow">
+    <div class="flow-step">📡 yfinance</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">data_loader.py</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">backtester.py</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">dashboard.py / scanner.py</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">🌐 Browser UI / CLI</div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="file-name">data_loader.py</div>
+      <h3>Data Layer</h3>
+      <p>Downloads daily OHLCV data via <code>yf.Ticker.history()</code> (no end date — returns live current bar). Handles timezone normalisation (UTC), indicator warmup (+150 calendar days), and engineers four HMM input features.</p>
+    </div>
+    <div class="card">
+      <div class="file-name">backtester.py</div>
+      <h3>Core Engine</h3>
+      <p>Fits the GMM-HMM, decodes regimes, computes <strong>10 technical confirmations</strong>, and simulates the strategy. Internally split into <code>_prepare()</code> (HMM fit + indicators) and <code>_run_simulation()</code> (trade loop + metrics). Exposes <code>optimize_params()</code> for grid-search without refitting.</p>
+    </div>
+    <div class="card">
+      <div class="file-name">scanner.py</div>
+      <h3>Multi-Index Screener</h3>
+      <p>Scans S&amp;P 500, Nasdaq 100, or Russell 2000 constituents in parallel for Bull Run entries. Ranks candidates by composite entry-quality score. Integrates into the dashboard as a dedicated page.</p>
+    </div>
+    <div class="card">
+      <div class="file-name">dashboard.py</div>
+      <h3>UI Layer</h3>
+      <p>Streamlit "Regime Terminal" with two pages: <strong>Backtester</strong> (live signals, TradingView-style chart, scorecard, equity curve, trade log) and <strong>Stock Screener</strong> (multi-index Bull entry scanner).</p>
+    </div>
+    <div class="card">
+      <div class="file-name">requirements.txt</div>
+      <h3>Dependencies</h3>
+      <p>yfinance, hmmlearn, pandas, numpy, scikit-learn, streamlit, plotly, pandas-ta. Charting uses <strong>lightweight-charts</strong> v4.2.1 via CDN (no install needed). Install with <code>pip install -r requirements.txt</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ GMM-HMM ════════════════════ -->
+<section id="hmm">
+  <h2>🧠 GMM-HMM Engine</h2>
+  <p>
+    The core model is a <strong>7-state Gaussian Mixture Model Hidden Markov Model</strong>
+    (<code>hmmlearn.hmm.GMMHMM</code>) with <strong>2 Gaussian mixture components per state</strong>
+    and full covariance matrices. Unlike a plain Gaussian HMM (one Gaussian per state),
+    each GMM-HMM state models observations as a weighted blend of 2 Gaussians —
+    capturing multi-modal within-state behaviour such as a Bull Run that sometimes
+    produces moderate gains and sometimes explosive ones.
+  </p>
+
+  <table>
+    <tr><th>Parameter</th><th>Value</th><th>Rationale</th></tr>
+    <tr><td><code>n_components</code> (states)</td><td>7</td><td>Rich enough to distinguish micro-regimes without overfitting</td></tr>
+    <tr><td><code>n_mix</code> (Gaussians / state)</td><td>2</td><td>Captures multi-modal within-state distributions</td></tr>
+    <tr><td><code>covariance_type</code></td><td><code>"full"</code></td><td>Full 4×4 covariance matrix — captures feature correlations</td></tr>
+    <tr><td><code>n_iter</code></td><td>2000</td><td>Generous EM budget to ensure convergence</td></tr>
+    <tr><td>Features fitted on</td><td>4 columns</td><td>returns, range, vol_change, trend_return</td></tr>
+  </table>
+
+  <h3>Auto-labelling (Option B)</h3>
+  <p>
+    After fitting, each state's mean return is ranked. The top 3 states by mean return are
+    labelled <span class="pill pill-bull">Bull Run</span>, the bottom 2 are labelled
+    <span class="pill pill-bear">Bear/Crash</span>, and the remaining 2 become
+    <span class="pill pill-neutral">Neutral/Transition</span>. No manual tuning required.
+  </p>
+  <p>
+    <strong>Why regime labels change with lookback period:</strong> The HMM is refit from scratch
+    on every lookback window. Different training data → different emission parameters → different
+    state-to-regime mappings. Additionally, the Viterbi decoder is globally optimal over the
+    full sequence, so adding older bars changes the most-likely path and can alter the label
+    on the final bar. Regime labels are in-sample statistical artefacts, not forward predictions.
+  </p>
+
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="label">Bull Run States</div>
+      <div class="value" style="color:var(--bull)">3 / 7</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Bear/Crash States</div>
+      <div class="value" style="color:var(--bear)">2 / 7</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Neutral States</div>
+      <div class="value" style="color:var(--neutral)">2 / 7</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Mixture Components</div>
+      <div class="value">2 / state</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 7 SUB-STATES ══════════════ -->
+<section id="substates">
+  <h2>🔢 7 Hidden Sub-States <span class="tag-new">NEW</span></h2>
+  <p>
+    The 7 internal HMM states are ranked by mean return (lowest → highest) and collapsed
+    into three tradeable regimes. The dashboard displays the current sub-state inside the
+    <strong>Detected Regime</strong> box (e.g. "State 6 · Steady Uptrend") so you can see
+    which specific micro-regime is active within the broader Bull/Bear/Neutral classification.
+  </p>
+
+  <table>
+    <tr><th>#</th><th>Sub-State Name</th><th>Regime</th><th>Characteristics</th></tr>
+    <tr>
+      <td style="color:var(--bear);font-weight:700;">1</td>
+      <td style="color:var(--bear);">Crash / Panic</td>
+      <td><span class="pill pill-bear">Bear/Crash</span></td>
+      <td>Sharpest drawdowns, highest volatility spike, heavy sell volume. Macro risk-off events, flash crashes, or liquidation cascades.</td>
+    </tr>
+    <tr>
+      <td style="color:#ff5252;font-weight:700;">2</td>
+      <td style="color:#ff5252;">Bear / Sustained Decline</td>
+      <td><span class="pill pill-bear">Bear/Crash</span></td>
+      <td>Persistent negative returns with elevated but stable volatility. Prolonged downtrend — sellers in control, low buying interest.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--neutral);font-weight:700;">3</td>
+      <td style="color:var(--neutral);">Bearish Consolidation</td>
+      <td><span class="pill pill-neutral">Neutral/Transition</span></td>
+      <td>Mildly negative to flat returns. Price stalls after a decline; uncertainty dominates. Often precedes a deeper bear move or reversal.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--neutral);font-weight:700;">4</td>
+      <td style="color:var(--neutral);">Sideways / Range-Bound</td>
+      <td><span class="pill pill-neutral">Neutral/Transition</span></td>
+      <td>Near-zero mean return, low directional volatility. Market lacks conviction — price oscillates within a range, volume subdued.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--bull);font-weight:700;">5</td>
+      <td style="color:var(--bull);">Early Recovery / Accumulation</td>
+      <td><span class="pill pill-bull">Bull Run</span></td>
+      <td>Modestly positive returns, volatility still below average. Smart money begins accumulating; price base-building after a downtrend.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--bull);font-weight:700;">6</td>
+      <td style="color:var(--bull);">Steady Uptrend</td>
+      <td><span class="pill pill-bull">Bull Run</span></td>
+      <td>Consistent positive returns with controlled volatility. Broad participation, rising volume, price making higher highs and higher lows.</td>
+    </tr>
+    <tr>
+      <td style="color:var(--bull);font-weight:700;">7</td>
+      <td style="color:var(--bull);">Momentum Bull / Euphoria</td>
+      <td><span class="pill pill-bull">Bull Run</span></td>
+      <td>Highest mean returns, volatility re-expanding upward. Strong buying pressure, FOMO-driven volume spikes, parabolic price action.</td>
+    </tr>
+  </table>
+
+  <h3>Sub-state Rank Source <span class="tag-new">FIXED</span></h3>
+  <p>
+    Sub-state ranks are derived directly from <code>engine.bear_states</code> and
+    <code>engine.bull_states</code> — the sets frozen at fit time — rather than re-sorting
+    by mean return at render time. This guarantees the sub-state is always consistent with
+    the Detected Regime label:
+  </p>
+  <ul style="margin: 8px 0 0 20px; line-height: 2.2; font-size: 14px; color: var(--text);">
+    <li>Ranks 1–2 → always Bear states (bottom 2 by mean return at fit time)</li>
+    <li>Ranks 3–4 → always Neutral states (middle 2)</li>
+    <li>Ranks 5–7 → always Bull states (top 3)</li>
+  </ul>
+  <p>
+    Previously, an independent re-sort could place a Neutral state at rank 6 (labeled
+    "Steady Uptrend") while the Detected Regime box showed "Neutral/Transition" — a
+    contradiction caused by NaN mean-return values for rare states disturbing Python's
+    sort order.
+  </p>
+
+  <h3>Sub-state vs. Confirmations</h3>
+  <p>
+    It is possible to be in a <span class="pill pill-bear">Bear/Crash</span> sub-state while
+    all technical confirmations are met. The HMM evaluates the <em>statistical pattern of a
+    sequence of bars</em>; confirmations are <em>point-in-time momentum signals</em> evaluated
+    on the current bar only. A classic scenario: a strong dead-cat bounce causes all
+    confirmations to pass on a single day, while the HMM still classifies the session as Bear
+    because the surrounding sequence of crash bars dominates the pattern. The regime always
+    takes precedence — the strategy exits on Bear regardless of confirmation count.
+  </p>
+</section>
+
+<!-- ═══════════════════════ FEATURES ═══════════════════ -->
+<section id="features">
+  <h2>📐 Engineered Features</h2>
+  <p>
+    Four features are computed from daily OHLCV data and fed into the GMM-HMM.
+    All features are standardised (zero mean, unit variance) before fitting.
+    Outliers beyond ±5σ are clipped to prevent HMM instability.
+    An extra <strong>150 calendar-day warmup</strong> is downloaded beyond the
+    user-selected lookback so that SMA-100 and MACD-26 are valid from bar 1.
+    Warmup rows are trimmed before backtesting.
+  </p>
+
+  <table>
+    <tr><th>#</th><th>Feature</th><th>Formula</th><th>Captures</th></tr>
+    <tr>
+      <td>1</td>
+      <td><code>returns</code></td>
+      <td>log(Closeₜ / Closeₜ₋₁)</td>
+      <td>Daily directional momentum</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><code>range</code></td>
+      <td>(High − Low) / Close</td>
+      <td>Intraday volatility / bar expansion</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><code>vol_change</code></td>
+      <td>RollingStd(Volume, 20) / RollingMean(Volume, 20)</td>
+      <td>Abnormal volume spikes (CoV)</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><code>trend_return</code> <em>(Option C)</em></td>
+      <td>log(Closeₜ / Closeₜ₋₂₀)</td>
+      <td>20-day cumulative trend — prevents uptrends being labelled Neutral</td>
+    </tr>
+  </table>
+
+  <h3>Live Data Pipeline</h3>
+  <p>
+    <code>data_loader.py</code> uses <code>yf.Ticker.history(start=..., no end)</code> instead
+    of <code>yf.download</code>. The key difference: <code>yf.download</code> only returns
+    fully-closed sessions, while <code>Ticker.history</code> without an end date always returns
+    the current live bar. UTC date comparison (<code>datetime.now(timezone.utc).date()</code>)
+    is used to avoid filtering out today's bar when the bar is labeled with a UTC timestamp.
+  </p>
+</section>
+
+<!-- ═══════════════════════ REGIMES ════════════════════ -->
+<section id="regimes">
+  <h2>🚦 Market Regimes</h2>
+  <p>
+    The Viterbi algorithm decodes the most likely sequence of hidden states for every bar.
+    Regimes change at most once per day (daily bar). Only the first bar of a new regime
+    triggers a trading action — ongoing regime bars have no new signal.
+  </p>
+
+  <table>
+    <tr><th>Regime</th><th>HMM States</th><th>Characteristics</th><th>Strategy Action</th></tr>
+    <tr>
+      <td><span class="pill pill-bull">Bull Run</span></td>
+      <td>Top 3 by mean return (Sub-states 5, 6, 7)</td>
+      <td>Strong positive returns, expanding ATR, elevated volume, rising trend_return</td>
+      <td><strong>Enter Long</strong> on transition (if ≥ min confirmations met)</td>
+    </tr>
+    <tr>
+      <td><span class="pill pill-bear">Bear/Crash</span></td>
+      <td>Bottom 2 by mean return (Sub-states 1, 2)</td>
+      <td>Strongly negative returns, panic selling, liquidation cascades</td>
+      <td><strong>Exit position</strong> after <code>bear_confirm_days</code> consecutive Bear bars</td>
+    </tr>
+    <tr>
+      <td><span class="pill pill-neutral">Neutral/Transition</span></td>
+      <td>Remaining 2 (Sub-states 3, 4)</td>
+      <td>Near-zero returns, sideways / consolidation / regime change</td>
+      <td><strong>No change</strong> — hold if in position, stay flat if not</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ═══════════════════════ STRATEGY ═══════════════════ -->
+<section id="strategy">
+  <h2>⚡ Strategy Logic</h2>
+
+  <h3>Transition-Based Entry &amp; Exit</h3>
+  <p>
+    Unlike "always-in" strategies that enter on every Bull bar, this system is
+    <strong>transition-triggered</strong>: actions fire only on the first bar of a new regime,
+    not on every ongoing bar. The Bear exit requires <code>bear_confirm_days</code>
+    (default <strong>5</strong>) consecutive Bear-labeled bars before closing the position —
+    preventing premature exits on single-bar noise. Once Bear is confirmed the position
+    closes immediately (no minimum hold gate).
+  </p>
+
+  <table>
+    <tr><th>Transition</th><th>Position</th><th>Standard Mode</th><th>Regime-Only Mode</th></tr>
+    <tr><td>→ <span class="pill pill-bull">Bull Run</span></td><td>Flat</td><td>🟢 <strong>Enter Long</strong> (if ≥ min_confirms met)</td><td>🟢 <strong>Enter Long</strong> immediately</td></tr>
+    <tr><td>→ <span class="pill pill-bull">Bull Run</span></td><td>Long</td><td>🟢 Hold Long (already in)</td><td>🟢 Hold Long</td></tr>
+    <tr><td>→ <span class="pill pill-neutral">Neutral</span></td><td>Long</td><td>🟡 Hold Long (no change)</td><td>🟡 Hold Long (no change)</td></tr>
+    <tr><td>→ <span class="pill pill-neutral">Neutral</span></td><td>Flat</td><td>⚪ Stay flat</td><td>🟢 <strong>Enter Long</strong> (Bear→Neutral transition)</td></tr>
+    <tr><td>→ <span class="pill pill-bear">Bear/Crash</span></td><td>Long</td><td>🔴 <strong>Exit</strong> after bear_confirm_days consecutive Bear bars</td><td>🔴 <strong>Exit</strong> on first Bear bar</td></tr>
+    <tr><td>→ <span class="pill pill-bear">Bear/Crash</span></td><td>Flat</td><td>🔴 Stay in cash</td><td>🔴 Stay in cash</td></tr>
+    <tr><td>Ongoing Bull (Bull→Bull)</td><td>Long</td><td>🟢 Hold Long</td><td>🟢 Hold Long</td></tr>
+    <tr><td>Ongoing Bear (Bear→Bear)</td><td>Flat</td><td>🔴 Stay in cash (already exited)</td><td>🔴 Stay in cash (already exited)</td></tr>
+  </table>
+
+  <h3>Equity Mark-to-Market</h3>
+  <p>
+    At every bar, the equity curve is updated with the position's unrealised P&amp;L
+    (leveraged). This happens <em>before</em> the exit check, so the equity curve
+    accurately reflects the floating value through both Bull and Neutral periods.
+  </p>
+  <pre><code>if position_open:
+    bar_return     = (close - entry_price) / entry_price
+    unrealised     = equity × leverage × bar_return
+    current_equity = equity + unrealised     # updated every bar</code></pre>
+</section>
+
+<!-- ═══════════════════════ CONFIRMATIONS ══════════════ -->
+<section id="confirmations">
+  <h2>✅ Technical Confirmations (10 Checks)</h2>
+  <p>
+    Entry on a Bull Run transition also requires a minimum number of technical
+    confirmations to be True. The default threshold is <strong>3 out of 10</strong>,
+    configurable in the dashboard sidebar.
+  </p>
+
+  <ul class="check-list">
+    <li><span class="num">1</span> Positive Momentum (14-period)</li>
+    <li><span class="num">2</span> Volatility Expansion (ATR &gt; ATR MA)</li>
+    <li><span class="num">3</span> Volume Above 20-period Average</li>
+    <li><span class="num">4</span> ADX Trending (&gt; 25)</li>
+    <li><span class="num">5</span> Price Above SMA-50</li>
+    <li><span class="num">6</span> MACD Histogram Positive</li>
+    <li><span class="num">7</span> Stochastic %K &gt; %D</li>
+    <li><span class="num">8</span> SMA-20 &gt; SMA-50</li>
+    <li><span class="num">9</span> SMA-50 &gt; SMA-100</li>
+    <li><span class="num">10</span> RSI &gt; 50</li>
+  </ul>
+
+  <p>
+    Each confirmation can be individually <strong>enabled or disabled</strong> in the
+    dashboard sidebar. Disabled confirmations are excluded from the count and shown
+    in grey on the scorecard. The entry threshold slider automatically adjusts to the
+    number of enabled confirmations.
+  </p>
+  <p>
+    <strong>Note:</strong> When <strong>Regime-Only Mode</strong> is active, the entire
+    confirmation gate is bypassed — entry fires immediately on any Bull (or Bear→Neutral)
+    transition. The scorecard remains visible for reference but does not influence trading.
+  </p>
+</section>
+
+<!-- ═══════════════════════ REGIME-ONLY ════════════════ -->
+<section id="regime-only">
+  <h2>⚡ Regime-Only Mode</h2>
+  <p>
+    Toggling <strong>Regime-Only Mode</strong> in the sidebar removes the confirmation gate entirely.
+    The strategy trades <em>solely</em> on HMM regime transitions — no technical indicators
+    required. This is useful for benchmarking how much of the edge comes from regime detection
+    alone versus the layered confirmation filters.
+  </p>
+
+  <h3>Entry Rules (Regime-Only)</h3>
+  <table>
+    <tr><th>Trigger</th><th>Action</th></tr>
+    <tr><td>Any transition <em>from</em> <span class="pill pill-bear">Bear/Crash</span> <em>to</em> <span class="pill pill-bull">Bull Run</span></td><td>🟢 <strong>Enter Long</strong> immediately (no confirmation check)</td></tr>
+    <tr><td>Any transition <em>from</em> <span class="pill pill-bear">Bear/Crash</span> <em>to</em> <span class="pill pill-neutral">Neutral</span></td><td>🟢 <strong>Enter Long</strong> — treats Neutral as a potential recovery</td></tr>
+  </table>
+
+  <h3>Exit Rules (Regime-Only)</h3>
+  <table>
+    <tr><th>Trigger</th><th>Action</th></tr>
+    <tr><td>First <span class="pill pill-bear">Bear/Crash</span> bar while long</td><td>🔴 <strong>Exit immediately</strong> on the very first Bear bar</td></tr>
+    <tr><td>Trailing stop fires (if enabled)</td><td>🔴 Exit; subject to <code>min_hold_days</code> gate</td></tr>
+  </table>
+
+  <p>
+    All other sidebar controls (leverage, trailing stop, min hold days, look-back period)
+    remain active in Regime-Only Mode. The confirmation scorecard is still displayed for
+    reference but shown with a note that it has no effect on trading.
+  </p>
+</section>
+
+<!-- ═══════════════════════ RISK ═══════════════════════ -->
+<section id="risk">
+  <h2>🛡️ Risk Management</h2>
+
+  <table>
+    <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+    <tr>
+      <td>Leverage</td>
+      <td>1×</td>
+      <td>Configurable in sidebar: 1× / 2× / 4×. Applied to every position's P&amp;L.</td>
+    </tr>
+    <tr>
+      <td>Bear Confirm Days</td>
+      <td>5</td>
+      <td>Consecutive Bear-labeled bars required before the strategy exits a long position. Prevents noisy single-bar exits.</td>
+    </tr>
+    <tr>
+      <td>Re-entry Cooldown</td>
+      <td>2 days</td>
+      <td>After any exit (Bear confirmation or trailing stop), no new entries for 2 calendar days.</td>
+    </tr>
+    <tr>
+      <td>Trailing Stop</td>
+      <td>Disabled</td>
+      <td>Optional 2% trailing stop-loss. Toggle in dashboard sidebar. The stop tracks the highest close since entry.</td>
+    </tr>
+    <tr>
+      <td>Min Hold Days (trailing stop gate)</td>
+      <td>0</td>
+      <td>Trailing stop will not fire until the position has been held for at least this many days.</td>
+    </tr>
+    <tr>
+      <td>Min Confirmations</td>
+      <td>3 / 10</td>
+      <td>Number of enabled technical checks that must be True on a Bull transition bar (Standard Mode only).</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ═══════════════════════ OPTIMIZER ══════════════════ -->
+<section id="optimizer">
+  <h2>🔍 Parameter Optimizer</h2>
+  <p>
+    Different assets have different volatility profiles. The Parameter Optimizer
+    grid-searches the three most impactful strategy parameters on the asset's own historical
+    data and surfaces the best combination — maximising <strong>Total Return</strong>.
+  </p>
+
+  <h3>Parameters Searched</h3>
+  <table>
+    <tr><th>Parameter</th><th>Search Grid</th><th>Description</th></tr>
+    <tr><td><code>bear_confirm_days</code></td><td>1, 2, 3, 4, 5, 6, 7</td><td>Consecutive Bear bars before exiting</td></tr>
+    <tr><td><code>min_confirms</code></td><td>1 → N active confirmations</td><td>Minimum technical checks required for entry</td></tr>
+    <tr><td><code>min_hold_days</code></td><td>0, 3, 5, 7, 10, 14</td><td>Minimum days held before trailing stop can fire</td></tr>
+  </table>
+
+  <p>Up to <strong>7 × 10 × 6 = 420 combinations</strong> are evaluated. Because the
+  HMM is fitted only once (via <code>_prepare()</code>) and reused across all combinations,
+  the full grid-search typically completes in seconds.</p>
+
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="label">Max Grid Size</div>
+      <div class="value">420</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">HMM Fits</div>
+      <div class="value" style="color:var(--bull)">1</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Objective</div>
+      <div class="value" style="font-size:1rem; color:var(--neutral)">Total Return %</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Cache TTL</div>
+      <div class="value" style="font-size:1.1rem">1 hour</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ KERNEL FORECAST ════════════ -->
+<section id="forecast">
+  <h2>🔮 10-Day Kernel Regression Forecast <span class="tag-new">NEW</span></h2>
+  <p>
+    Instead of predicting a single price target, the forecast asks: <em>"Given today's feature
+    vector, what distribution of 10-day returns did similar historical situations produce?"</em>
+    A Gaussian kernel regression over past bars yields both an <strong>expected path</strong>
+    and a <strong>±1σ uncertainty band</strong> — more useful for position sizing than a
+    point prediction.
+  </p>
+
+  <h3>Features (per bar)</h3>
+  <table>
+    <tr><th>Feature</th><th>Formula</th><th>Captures</th></tr>
+    <tr><td><code>vol_surge</code></td><td>volume / 20-day avg volume</td><td>Abnormal volume activity</td></tr>
+    <tr><td><code>atr_ratio</code></td><td>ATR(14) / close</td><td>Normalised realised volatility</td></tr>
+    <tr><td><code>pct_from_high</code></td><td>(close − 52-week high) / 52-week high</td><td>Distance from peak (drawdown)</td></tr>
+    <tr><td><code>momentum_5d</code></td><td>5-day return</td><td>Short-term directional momentum</td></tr>
+    <tr><td><code>regime_num</code></td><td>+1 Bull / 0 Neutral / −1 Bear</td><td>Current HMM regime context</td></tr>
+  </table>
+
+  <h3>Algorithm</h3>
+  <p>
+    Features are z-score normalised using the training portion of the data (all bars except
+    the last 10). For today's feature vector, a Gaussian kernel weight
+    <code>exp(−d²/2h²)</code> is computed against every historical bar, where
+    <code>h</code> is the median pairwise distance (bandwidth heuristic). The kernel-weighted
+    mean and standard deviation of the 10-day forward return paths give:
+  </p>
+  <ul style="margin: 8px 0 0 20px; line-height: 2.2; font-size: 14px; color: var(--text);">
+    <li><strong>Expected path</strong> — kernel-weighted mean of historical 10-day forward returns, projected as price levels</li>
+    <li><strong>+1σ band</strong> — upper confidence bound</li>
+    <li><strong>−1σ band</strong> — lower confidence bound</li>
+  </ul>
+  <p>
+    Future dates are computed as <strong>business days</strong> for equities and
+    <strong>calendar days</strong> for crypto tickers (detected by suffix: <code>-USD</code>, etc.).
+    On the first bar (no prior history), the anchor falls back to using the open price.
+  </p>
+
+  <h3>Chart Rendering</h3>
+  <p>
+    All three paths are rendered as <strong>dashed amber lines</strong> anchored to today's
+    close, extending 10 bars into the future. The expected return percentage is shown in the
+    chart legend (e.g. "10-Day Forecast +3.2%"). The ±1σ bands are rendered at reduced
+    opacity (<code>rgba(255,215,64,0.4)</code>) so they don't obscure the price action.
+  </p>
+
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="label">Forecast Horizon</div>
+      <div class="value">10 days</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Features</div>
+      <div class="value">5</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Kernel</div>
+      <div class="value" style="font-size:1rem; color:var(--neutral)">Gaussian RBF</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Cache TTL</div>
+      <div class="value" style="font-size:1.1rem">5 min</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ SCANNER ═══════════════════ -->
+<section id="scanner">
+  <h2>🔍 Stock Screener <span class="tag-new">UPDATED</span></h2>
+  <p>
+    <code>scanner.py</code> runs the same GMM-HMM pipeline on every constituent of the
+    selected index universe and surfaces the stocks that have <strong>most recently entered
+    a Bull Run regime</strong>, ranked by a composite entry-quality score.
+  </p>
+
+  <h3>Supported Index Universes</h3>
+  <table>
+    <tr><th>Universe</th><th>Tickers</th><th>Source</th></tr>
+    <tr><td>S&amp;P 500</td><td>~500</td><td>Wikipedia table scrape</td></tr>
+    <tr><td>Nasdaq 100</td><td>~100</td><td>Wikipedia table scrape</td></tr>
+    <tr><td>Russell 2000</td><td>~2000</td><td>iShares IWM holdings CSV</td></tr>
+  </table>
+
+  <h3>Entry-Quality Score (0–100)</h3>
+  <table>
+    <tr><th>Component</th><th>Weight</th><th>Description</th></tr>
+    <tr>
+      <td>HMM Bull Probability</td>
+      <td><strong>40 pts</strong></td>
+      <td>Posterior probability mass across all Bull states for the most recent bar</td>
+    </tr>
+    <tr>
+      <td>Confirmation Signals Met</td>
+      <td><strong>35 pts</strong></td>
+      <td>Fraction of all 10 active technical signals satisfied at entry</td>
+    </tr>
+    <tr>
+      <td>Freshness (exponential decay)</td>
+      <td><strong>25 pts</strong></td>
+      <td>25 × e<sup>−0.2 × (bars_in_bull − 1)</sup> — day-1 = 25 pts, day-3 ≈ 16.7 pts, day-5 ≈ 11.2 pts</td>
+    </tr>
+  </table>
+
+  <h3>Dashboard integration</h3>
+  <p>
+    The screener is accessible via the <strong>📡 Backtester / 🔍 Stock Screener</strong>
+    radio selector at the top of the sidebar. The index universe is selected from a dropdown
+    (S&amp;P 500, Nasdaq 100, Russell 2000). Results are cached for 2 hours
+    per unique parameter combination.
+  </p>
+</section>
+
+<!-- ═══════════════════════ DASHBOARD ══════════════════ -->
+<section id="dashboard">
+  <h2>📡 Dashboard (Streamlit) <span class="tag-new">UPDATED</span></h2>
+  <p>
+    Running <code>streamlit run dashboard.py</code> launches the full "Regime Terminal" UI.
+    The dashboard caches data for 5 minutes (300s TTL). Any sidebar change triggers an
+    immediate re-run.
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>🏢 Company Profile Card <span class="tag-new">NEW</span></h3>
+      <p>Displays just below the page title: sector, industry, market cap, employee count, website link, and a business summary (truncated to 200 words). Fetched via <code>yf.Ticker.info</code> (24-hour cache). Hidden automatically for tickers with no available info (e.g. crypto).</p>
+    </div>
+    <div class="card">
+      <h3>🚦 Current Signal Panel</h3>
+      <p>Shows detected regime badge with <strong>sub-state name</strong> (e.g. "State 6 · Steady Uptrend") in regime colour, recommended action (colour-coded), live asset price with <strong>PST timestamp</strong>, leverage, and confirmation count badge.</p>
+    </div>
+    <div class="card">
+      <h3>💰 Live Quote</h3>
+      <p>Price is fetched via <code>yf.Ticker.fast_info.last_price</code> (60-second cache) rather than the last bar close. The "As of" timestamp reflects the current time in <strong>Pacific Time (PST/PDT)</strong>. The last candle on the chart is also patched with live OHLCV (<code>day_high</code>, <code>day_low</code>, <code>last_price</code>).</p>
+    </div>
+    <div class="card">
+      <h3>📊 State Probabilities</h3>
+      <p>Horizontal bar chart showing the probability of each of the 7 hidden states for the most recent bar. Bars are colour-coded by regime label.</p>
+    </div>
+    <div class="card">
+      <h3>✅ Confirmation Scorecard</h3>
+      <p>All 10 confirmations listed in canonical order with ✅ Met / ❌ Not Met / ⏸ Disabled status badges. Disabled signals are shown in grey.</p>
+    </div>
+    <div class="card">
+      <h3>📈 Price Chart (TradingView-style) <span class="tag-new">UPDATED</span></h3>
+      <p>lightweight-charts v4.2.1 via CDN. Features: candlestick, regime background bands (solid wash, original green/red/amber at 0.35 opacity), no grid lines, SMA-50 overlay, volume histogram, buy/sell markers (sell shows P&L %), crosshair tooltip with <strong>prev-close day change</strong> (not open→close), and <strong>10-day kernel regression forecast</strong> (dashed amber lines + ±1σ band).</p>
+    </div>
+    <div class="card">
+      <h3>📖 Regime Descriptions</h3>
+      <p>Three regime cards (Bull/Bear/Neutral) plus a <strong>7-state sub-state table</strong> ranked from most bearish (State 1 · Crash/Panic) to most bullish (State 7 · Momentum Bull).</p>
+    </div>
+    <div class="card">
+      <h3>💹 Equity Curve</h3>
+      <p>Strategy equity vs. Buy &amp; Hold comparison. Starting capital reference line. Filled area under the strategy curve for visual clarity.</p>
+    </div>
+    <div class="card">
+      <h3>📋 Performance Metrics</h3>
+      <p>Total Return, Buy &amp; Hold Return, Alpha, Max Drawdown, Win Rate, Sharpe Ratio with <strong>B&amp;H Sharpe Ratio delta</strong>, Final Equity.</p>
+    </div>
+    <div class="card">
+      <h3>🗒️ Trade Log</h3>
+      <p>Full table of every trade: Entry/Exit dates, prices, PnL (% and $), confirmations met at entry, regime transition label. Summary row + CSV download.</p>
+    </div>
+    <div class="card">
+      <h3>🎯 Parameter Optimizer Panel</h3>
+      <p>Grid-searches <code>bear_confirm_days</code>, <code>min_confirms</code>, and <code>min_hold_days</code> to find the combination that maximises Total Return. Shows best-param cards, delta vs. current settings, and a top-10 results table.</p>
+    </div>
+  </div>
+
+  <h3>Sidebar Controls</h3>
+  <table>
+    <tr><th>Control</th><th>Options / Range</th><th>Notes</th></tr>
+    <tr><td>Ticker Symbol</td><td>Any Yahoo Finance symbol — always displayed in ALL CAPS</td><td>Changing symbol triggers full re-run; ticker is auto-saved to watchlist</td></tr>
+    <tr><td>Watchlist Dropdown <span class="tag-new">NEW</span></td><td>Saved tickers selectbox (alphabetically sorted)</td><td>Selecting a ticker populates the input and reruns. Auto-saves any typed ticker. ➖ Remove from List button. Persisted to <code>watchlist.json</code>.</td></tr>
+    <tr><td>🔄 Refresh Data &amp; Re-run</td><td>Button — directly below Ticker Symbol</td><td>Clears data cache and re-downloads from yfinance</td></tr>
+    <tr><td>Look-back Period</td><td>365 – 1825 days (slider, step 30, <strong>default 365</strong>)</td><td>Default changed from 730 to 365</td></tr>
+    <tr><td>Leverage Factor</td><td>1× / 2× / 4× (radio)</td><td></td></tr>
+    <tr><td>Trailing Stop</td><td>Toggle on/off (2% trail)</td><td></td></tr>
+    <tr><td>Bear Confirm Days</td><td>1 – 10 (slider, default 5)</td><td>Consecutive Bear bars before position is closed</td></tr>
+    <tr><td>Min Hold Days</td><td>0 – 14 (slider, default 0)</td><td>Gates the trailing stop only</td></tr>
+    <tr><td>Starting Capital</td><td>$1,000 – $10,000,000 (number input)</td><td></td></tr>
+    <tr><td>⚡ Regime-Only Mode</td><td>Toggle on/off</td><td>Bypasses all confirmation gates</td></tr>
+    <tr><td>Confirmation Filters</td><td>10 individual checkboxes + Select All / Deselect All</td><td>Disabled in Regime-Only Mode</td></tr>
+    <tr><td>Min Confirmations Required</td><td>Slider 1 → N_enabled</td><td>Disabled in Regime-Only Mode</td></tr>
+    <tr><td>🔍 Optimize for this Asset</td><td>Button</td><td>Runs grid-search; cached 1 hour per ticker</td></tr>
+  </table>
+
+  <h3>Chart Cache Architecture</h3>
+  <p>
+    The TradingView chart function <code>_build_tv_chart_html()</code> uses
+    <code>@st.cache_data(ttl=300)</code>. Because Streamlit excludes underscore-prefixed
+    arguments from the cache key, the cache key is explicitly formed from four
+    non-underscore parameters:
+  </p>
+  <ul style="margin: 8px 0 0 20px; line-height: 2.2; font-size: 14px; color: var(--text);">
+    <li><code>ticker</code> — busts cache on symbol change</li>
+    <li><code>live_key</code> — busts cache when live price changes (e.g. <code>"83412.5"</code>)</li>
+    <li><code>regime_key</code> — busts cache when last-bar regime changes (e.g. <code>"2026-03-10_Bull Run"</code>)</li>
+    <li><code>prediction_json</code> — serialised kernel forecast; busts cache when forecast changes</li>
+  </ul>
+  <p>
+    This ensures the chart always reflects the current regime from <code>backtester.df</code>,
+    eliminating stale-chart / fresh-signal mismatches.
+  </p>
+
+  <h3>Day-Change Tooltip Fix <span class="tag-new">FIXED</span></h3>
+  <p>
+    The OHLC crosshair tooltip previously computed daily change as <code>close − open</code>.
+    It now computes <code>close − previous bar's close</code>, matching the convention used by
+    all professional charting platforms. A <code>prevCloseMap</code> (built from
+    <code>CANDLE_DATA</code> at chart init time) provides O(1) lookup per bar.
+  </p>
+</section>
+
+<!-- ═══════════════════════ SETUP ═══════════════════════ -->
+<section id="setup">
+  <h2>🚀 Setup &amp; Run</h2>
+
+  <h3>1 — Install dependencies</h3>
+  <pre><code>pip install -r requirements.txt</code></pre>
+
+  <h3>2 — (Optional) Run standalone data check</h3>
+  <pre><code>python data_loader.py</code></pre>
+
+  <h3>3 — (Optional) Run backtest in terminal</h3>
+  <pre><code>python backtester.py</code></pre>
+
+  <h3>4 — Launch the full dashboard</h3>
+  <pre><code>streamlit run dashboard.py</code></pre>
+
+  <p>The dashboard will open in your default browser at <code>http://localhost:8501</code>.
+  On first load it downloads ~365 daily candles (+150 warmup) and fits the GMM-HMM
+  (~10–30 seconds). Subsequent loads use the 5-minute cache.</p>
+
+  <h3>Requirements</h3>
+  <pre><code>yfinance
+hmmlearn
+pandas
+numpy
+scikit-learn
+streamlit
+plotly
+pandas-ta</code></pre>
+  <p style="margin-top:8px; font-size:13px; color:var(--muted);">
+    The price chart uses <strong>lightweight-charts v4.2.1</strong> loaded from the unpkg CDN
+    at runtime — no additional pip install required.
+  </p>
+</section>
+
+</div><!-- /.page-wrapper -->
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+<footer>
+  <p>
+    <strong>HMM Regime Terminal</strong> &nbsp;·&nbsp;
+    Built with Streamlit + hmmlearn + Plotly + lightweight-charts &nbsp;·&nbsp;
+    Data via yfinance &nbsp;·&nbsp;
+    GMM-HMM (7 states, n_mix=2, 4 features) &nbsp;·&nbsp;
+    Kernel Regression 10-Day Forecast
+  </p>
+  <p style="margin-top:8px; color:#444">
+    ⚠️ For educational &amp; research purposes only. Not financial advice.
+    Regime labels are in-sample statistical artefacts and do not predict future returns.
+  </p>
+</footer>
+
+</body>
+</html>
