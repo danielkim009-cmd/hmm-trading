@@ -2220,7 +2220,7 @@ else:
             return f"background-color: {color}"
         return ""
 
-    styled_log = trade_log_df.style.applymap(
+    styled_log = trade_log_df.style.map(
         color_pnl, subset=["PnL (%)", "PnL ($)"]
     )
 
