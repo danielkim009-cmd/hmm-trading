@@ -126,7 +126,7 @@ The price chart uses **lightweight-charts v4.2.1** loaded from the unpkg CDN —
 
 ## 📖 Full Documentation
 
-Open [`project_overview.html`](project_overview.html) in your browser for a complete technical reference covering the GMM-HMM architecture, all 7 sub-states, strategy logic, confirmation rules, kernel forecast algorithm, and more.
+Open the [full technical documentation](https://danielkim009-cmd.github.io/hmm-trading/project_overview.html) for a complete reference covering the GMM-HMM architecture, all 7 sub-states, strategy logic, confirmation rules, kernel forecast algorithm, and more.
 
 ---
 
