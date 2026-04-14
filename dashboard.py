@@ -36,6 +36,7 @@ import pandas as pd
 import yfinance as yf
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit_javascript import st_javascript
 import plotly.graph_objects as go
 
 # Internal modules
@@ -87,25 +88,43 @@ REGIME_DELTA = {
 }
 
 # ===========================================================================
-#  WATCHLIST  (persisted to watchlist.json next to dashboard.py)
+#  WATCHLIST  (persisted to browser localStorage — survives tab/browser close)
 # ===========================================================================
-_WATCHLIST_FILE     = Path(__file__).parent / "watchlist.json"
-_DEFAULT_WATCHLIST  = ["BTC-USD", "ETH-USD", "SOL-USD", "AAPL", "NVDA", "TSLA", "SPY", "QQQ"]
-
-def _load_watchlist() -> list[str]:
-    try:
-        return sorted(json.loads(_WATCHLIST_FILE.read_text()))
-    except Exception:
-        return sorted(_DEFAULT_WATCHLIST)
+_DEFAULT_WATCHLIST = [
+    "AAPL", "AG", "AMD", "AMZN", "AVGO", "BTC-USD", "BWXT", "CIEN", "CL=F",
+    "COHR", "ES=F", "ETH-USD", "EWY", "GC=F", "GDX", "GEV", "GLD", "GLW",
+    "GOOG", "HG=F", "INTC", "IWM", "KR", "LITE", "MU", "NVDA", "OKLO",
+    "PLTR", "QCOM", "QQQ", "SI=F", "SLV", "SMR", "SNDK", "SOL-USD", "SPY",
+    "TLT", "TSLA", "USO", "VRT", "VRTX", "WDC",
+]
+_LS_KEY = "hmm_watchlist"
 
 def _save_watchlist(tickers: list[str]) -> None:
-    try:
-        _WATCHLIST_FILE.write_text(json.dumps(tickers))
-    except Exception:
-        pass
+    """Write watchlist to browser localStorage."""
+    st_javascript(f"localStorage.setItem('{_LS_KEY}', JSON.stringify({json.dumps(tickers)}))")
+
+# Read current value from localStorage.
+# Returns 0 on the first render (JS pending), then the stored string on rerun.
+_ls_value = st_javascript(f"localStorage.getItem('{_LS_KEY}')")
 
 if "watchlist" not in st.session_state:
-    st.session_state["watchlist"] = _load_watchlist()
+    # First render: JS not resolved yet → start with default; will be
+    # overwritten on the immediate rerun once _ls_value resolves.
+    if isinstance(_ls_value, str) and _ls_value not in ("null", ""):
+        try:
+            st.session_state["watchlist"] = sorted(json.loads(_ls_value))
+            st.session_state["_wl_synced"] = True
+        except Exception:
+            st.session_state["watchlist"] = sorted(_DEFAULT_WATCHLIST)
+    else:
+        st.session_state["watchlist"] = sorted(_DEFAULT_WATCHLIST)
+elif not st.session_state.get("_wl_synced") and isinstance(_ls_value, str) and _ls_value not in ("null", ""):
+    # JS just resolved on the second render — load the stored list once.
+    try:
+        st.session_state["watchlist"] = sorted(json.loads(_ls_value))
+    except Exception:
+        pass
+    st.session_state["_wl_synced"] = True
 
 
 # ===========================================================================
