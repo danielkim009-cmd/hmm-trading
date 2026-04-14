@@ -1536,6 +1536,13 @@ def _build_tv_chart_html(
     vol_data    = []
     sma_data    = []
 
+    # Pre-compute EMA-21 and EMA-100 on the close series
+    close_series = _df["close"]
+    ema21_series  = close_series.ewm(span=21,  adjust=False).mean()
+    ema100_series = close_series.ewm(span=100, adjust=False).mean()
+    ema21_data  = []
+    ema100_data = []
+
     for ts, row in _df.iterrows():
         date_str = ts.strftime("%Y-%m-%d")
         candle_data.append({
@@ -1556,6 +1563,12 @@ def _build_tv_chart_html(
                 "time":  date_str,
                 "value": round(float(row["sma_baseline"]), 2),
             })
+        ema21_val  = ema21_series.get(ts)
+        ema100_val = ema100_series.get(ts)
+        if ema21_val is not None and pd.notna(ema21_val):
+            ema21_data.append({"time": date_str, "value": round(float(ema21_val), 2)})
+        if ema100_val is not None and pd.notna(ema100_val):
+            ema100_data.append({"time": date_str, "value": round(float(ema100_val), 2)})
 
     # ── Regime background bands ──────────────────────────────────────────────
     regime_bands = []
@@ -1613,6 +1626,8 @@ def _build_tv_chart_html(
     candle_json  = json.dumps(candle_data)
     vol_json     = json.dumps(vol_data)
     sma_json     = json.dumps(sma_data)
+    ema21_json   = json.dumps(ema21_data)
+    ema100_json  = json.dumps(ema100_data)
     bands_json   = json.dumps(regime_bands)
     markers_json = json.dumps(markers)
     legend_json  = json.dumps(legend_items)
@@ -1654,6 +1669,8 @@ def _build_tv_chart_html(
   const CANDLE_DATA  = {candle_json};
   const VOL_DATA     = {vol_json};
   const SMA_DATA     = {sma_json};
+  const EMA21_DATA   = {ema21_json};
+  const EMA100_DATA  = {ema100_json};
   const BANDS        = {bands_json};
   const MARKERS      = {markers_json};
   const LEGEND_ITEMS = {legend_json};
@@ -1669,6 +1686,19 @@ def _build_tv_chart_html(
     div.innerHTML = `<div class="leg-swatch" style="background:${{item.color}}"></div>${{item.label}}`;
     legendEl.appendChild(div);
   }});
+  // EMA legend entries
+  const emaLegendItems = [
+    {{ label: 'EMA-50',  color: '#ffd740' }},
+    {{ label: 'EMA-21',  color: '#29b6f6' }},
+    {{ label: 'EMA-100', color: '#ab47bc' }},
+  ];
+  emaLegendItems.forEach(item => {{
+    const div = document.createElement('div');
+    div.className = 'leg-item';
+    div.innerHTML = `<div class="leg-swatch" style="background:${{item.color}}"></div>${{item.label}}`;
+    legendEl.appendChild(div);
+  }});
+
   if (PREDICTION) {{
     const sign  = PREDICTION.exp_ret_pct >= 0 ? '+' : '';
     const color = PREDICTION.exp_ret_pct >= 0 ? '#ffd740' : '#ff7043';
@@ -1739,7 +1769,7 @@ def _build_tv_chart_html(
             if (x0 == null || x1 == null) continue;
             const lx = Math.min(x0, x1);
             const rx = Math.max(x0, x1);
-            ctx.globalAlpha = 0.35;
+            ctx.globalAlpha = 0.15;
             ctx.fillStyle   = b.color;
             ctx.fillRect(
               Math.round(lx * hpr), 0,
@@ -1765,7 +1795,7 @@ def _build_tv_chart_html(
     candleSeries.attachPrimitive(new RegimePrimitive(BANDS, chart));
   }}
 
-  // ── SMA-50 overlay ───────────────────────────────────────────────────────
+  // ── EMA-50 overlay (amber) ────────────────────────────────────────────────
   if (SMA_DATA.length > 0) {{
     const smaSeries = chart.addLineSeries({{
       color:            '#ffd740',
@@ -1774,6 +1804,28 @@ def _build_tv_chart_html(
       lastValueVisible: false,
     }});
     smaSeries.setData(SMA_DATA);
+  }}
+
+  // ── EMA-21 overlay (sky blue) ─────────────────────────────────────────────
+  if (EMA21_DATA.length > 0) {{
+    const ema21Series = chart.addLineSeries({{
+      color:            '#29b6f6',
+      lineWidth:        1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    }});
+    ema21Series.setData(EMA21_DATA);
+  }}
+
+  // ── EMA-100 overlay (purple) ──────────────────────────────────────────────
+  if (EMA100_DATA.length > 0) {{
+    const ema100Series = chart.addLineSeries({{
+      color:            '#ab47bc',
+      lineWidth:        1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    }});
+    ema100Series.setData(EMA100_DATA);
   }}
 
   // ── Volume histogram (lower pane, 20% height) ────────────────────────────

@@ -176,7 +176,7 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["adx"]           = _adx(df["high"], df["low"], df["close"])
     df["sma_20"]        = df["close"].rolling(SMA_20_PERIOD).mean()
     df["sma_50"]        = df["close"].rolling(SMA_50_PERIOD).mean()
-    df["sma_baseline"]  = df["sma_50"]          # alias kept for price chart overlay
+    df["sma_baseline"]  = df["close"].ewm(span=SMA_50_PERIOD, adjust=False).mean()  # EMA-50 for chart overlay
     df["sma_100"]       = df["close"].rolling(SMA_100_PERIOD).mean()
     _, _, df["macd_hist"] = _macd(df["close"])
     df["stoch_k"], df["stoch_d"] = _stochastic(df["high"], df["low"], df["close"])
