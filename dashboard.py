@@ -685,11 +685,22 @@ if page == "🔍 Stock Screener":
 @st.cache_data(ttl=86400, show_spinner=False)   # cache for 24 hours
 def get_company_name(ticker: str) -> str:
     """Return the long (or short) name for a ticker via yfinance, or '' on failure."""
+    # Try .info first (full data, may be blocked on cloud IPs)
     try:
         info = yf.Ticker(ticker).info
-        return info.get("longName") or info.get("shortName") or ""
+        name = info.get("longName") or info.get("shortName") or ""
+        if name:
+            return name
     except Exception:
-        return ""
+        pass
+    # Fallback: yf.Search hits a different endpoint, more reliable on cloud
+    try:
+        results = yf.Search(ticker, max_results=1).quotes
+        if results:
+            return results[0].get("longname") or results[0].get("shortname") or ""
+    except Exception:
+        pass
+    return ""
 
 
 @st.cache_data(ttl=86400, show_spinner=False)   # cache for 24 hours
