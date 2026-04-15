@@ -694,11 +694,8 @@ def get_company_name(ticker: str) -> str:
 
 @st.cache_data(ttl=86400, show_spinner=False)   # cache for 24 hours
 def get_company_profile(ticker: str) -> dict:
-    """Return a profile dict: sector, industry, employees, market_cap, website, summary."""
-    import requests
-    session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"})
-    t = yf.Ticker(ticker, session=session)
+    """Return a profile dict: sector, industry, employees, market_cap, website, summary, error."""
+    t = yf.Ticker(ticker)
 
     # fast_info is lightweight and works reliably on cloud servers
     mc_str = ""
@@ -710,10 +707,10 @@ def get_company_profile(ticker: str) -> dict:
             mc_str = f"${mc/1e9:.2f}B"
         elif mc and mc >= 1e6:
             mc_str = f"${mc/1e6:.2f}M"
-    except Exception:
-        pass
+    except Exception as e:
+        return {"error": f"fast_info failed: {type(e).__name__}: {e}"}
 
-    # .info with browser session header to avoid cloud IP blocks
+    # .info is richer but may be blocked by Yahoo on cloud IPs; fail gracefully
     sector = industry = emp_str = website = summary = ""
     try:
         info = t.info
@@ -732,8 +729,13 @@ def get_company_profile(ticker: str) -> dict:
                 mc_str = f"${mc/1e9:.2f}B"
             elif mc >= 1e6:
                 mc_str = f"${mc/1e6:.2f}M"
-    except Exception:
-        pass
+    except Exception as e:
+        # .info blocked on cloud — surface the reason, keep fast_info market cap
+        return {
+            "sector": "", "industry": "", "employees": "", "website": "", "summary": "",
+            "market_cap": mc_str,
+            "error": f".info unavailable: {type(e).__name__}: {e}",
+        }
 
     if not any([mc_str, sector, industry, emp_str, website, summary]):
         return {}
@@ -926,6 +928,8 @@ live_quote = get_live_quote(ticker_symbol)
 # ===========================================================================
 _company_name   = get_company_name(ticker_symbol)
 _company_profile = get_company_profile(ticker_symbol)
+if _company_profile.get("error"):
+    st.warning(f"Company profile partial/unavailable — {_company_profile['error']}")
 _display_name   = f"{_company_name} ({ticker_symbol})" if _company_name else ticker_symbol
 st.markdown(
     "<h1 style='text-align:center; color:#00e5ff;'>📡 HMM Regime Terminal</h1>"
