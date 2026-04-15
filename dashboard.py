@@ -695,29 +695,54 @@ def get_company_name(ticker: str) -> str:
 @st.cache_data(ttl=86400, show_spinner=False)   # cache for 24 hours
 def get_company_profile(ticker: str) -> dict:
     """Return a profile dict: sector, industry, employees, market_cap, website, summary."""
+    t = yf.Ticker(ticker)
+
+    # fast_info is lightweight and works reliably on cloud servers
+    mc_str = ""
     try:
-        info = yf.Ticker(ticker).info
-        mc = info.get("marketCap")
+        mc = t.fast_info.market_cap
         if mc and mc >= 1e12:
             mc_str = f"${mc/1e12:.2f}T"
         elif mc and mc >= 1e9:
             mc_str = f"${mc/1e9:.2f}B"
         elif mc and mc >= 1e6:
             mc_str = f"${mc/1e6:.2f}M"
-        else:
-            mc_str = ""
+    except Exception:
+        pass
+
+    # .info is richer but may be blocked by Yahoo on cloud IPs; fail gracefully
+    sector = industry = emp_str = website = summary = ""
+    try:
+        info = t.info
         emp = info.get("fullTimeEmployees")
         emp_str = f"{emp:,}" if emp else ""
-        return {
-            "sector"   : info.get("sector", ""),
-            "industry" : info.get("industry", ""),
-            "employees": emp_str,
-            "market_cap": mc_str,
-            "website"  : info.get("website", ""),
-            "summary"  : info.get("longBusinessSummary", ""),
-        }
+        sector   = info.get("sector", "")
+        industry = info.get("industry", "")
+        website  = info.get("website", "")
+        summary  = info.get("longBusinessSummary", "")
+        # prefer .info market cap when available
+        mc = info.get("marketCap")
+        if mc:
+            if mc >= 1e12:
+                mc_str = f"${mc/1e12:.2f}T"
+            elif mc >= 1e9:
+                mc_str = f"${mc/1e9:.2f}B"
+            elif mc >= 1e6:
+                mc_str = f"${mc/1e6:.2f}M"
     except Exception:
+        pass
+
+    if not any([mc_str, sector, industry, emp_str, website, summary]):
         return {}
+
+    return {
+        "sector"    : sector,
+        "industry"  : industry,
+        "employees" : emp_str,
+        "market_cap": mc_str,
+        "website"   : website,
+        "summary"   : summary,
+    }
 
 
 @st.cache_data(ttl=60, show_spinner=False)   # cache for 60 seconds
