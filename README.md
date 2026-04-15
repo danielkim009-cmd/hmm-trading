@@ -2,7 +2,7 @@
 
 A professional **regime-based algorithmic trading system** that uses a **7-state Gaussian Mixture Model Hidden Markov Model (GMM-HMM)** to detect market states and layers technical confirmation strategies with strict risk management on top.
 
-Works with any Yahoo Finance ticker — stocks, ETFs, crypto, indices.
+Works with any ticker recognised by Yahoo Finance — stocks, ETFs, crypto, futures, and indices.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-red)
@@ -84,7 +84,7 @@ All controls are in the sidebar:
 
 | Control | Default | Description |
 |---|---|---|
-| Ticker Symbol | BTC-USD | Any Yahoo Finance symbol |
+| Ticker Symbol | BTC-USD | Any ticker recognised by Yahoo Finance (see examples below) |
 | Look-back Period | 365 days | Historical data window for HMM training |
 | Leverage | 1× | 1×, 2×, or 4× position sizing |
 | Bear Confirm Days | 5 | Consecutive Bear bars required to exit |
@@ -92,6 +92,19 @@ All controls are in the sidebar:
 | Trailing Stop | Off | 2% trailing stop-loss |
 | Regime-Only Mode | Off | Trade on regime transitions only |
 | Min Confirmations | 3/10 | Minimum technical checks for entry |
+
+### 🔖 Ticker Examples
+
+Ticker symbols must be recognised by Yahoo Finance. The default watchlist includes:
+
+| Category | Tickers |
+|---|---|
+| **Stocks** | AG, AMD, AMZN, AVGO, BWXT, CIEN, COHR, GEV, GLW, GOOG, INTC, LITE, MU, NVDA, OKLO, PLTR, SMR, SNDK, VRT, VRTX, WDC |
+| **Crypto** | BTC-USD, ETH-USD, SOL-USD |
+| **Futures** | CL=F (Crude Oil), ES=F (S&P 500 Futures), GC=F (Gold), HG=F (Copper), SI=F (Silver) |
+| **ETFs** | EWY, GDX, GLD, IWM, QQQ, SLV, SPY, TLT, USO |
+
+Any other valid Yahoo Finance symbol can be entered manually in the Ticker Symbol field.
 
 ---
 
