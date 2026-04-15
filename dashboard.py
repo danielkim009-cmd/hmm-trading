@@ -695,7 +695,10 @@ def get_company_name(ticker: str) -> str:
 @st.cache_data(ttl=86400, show_spinner=False)   # cache for 24 hours
 def get_company_profile(ticker: str) -> dict:
     """Return a profile dict: sector, industry, employees, market_cap, website, summary."""
-    t = yf.Ticker(ticker)
+    import requests
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"})
+    t = yf.Ticker(ticker, session=session)
 
     # fast_info is lightweight and works reliably on cloud servers
     mc_str = ""
@@ -710,7 +713,7 @@ def get_company_profile(ticker: str) -> dict:
     except Exception:
         pass
 
-    # .info is richer but may be blocked by Yahoo on cloud IPs; fail gracefully
+    # .info with browser session header to avoid cloud IP blocks
     sector = industry = emp_str = website = summary = ""
     try:
         info = t.info
