@@ -8,7 +8,7 @@ Works with any Yahoo Finance ticker — stocks, ETFs, crypto, indices.
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-🚀 **[Live Demo](https://gmm-hmm-trading-and-backtest.streamlit.app/)**
+🚀 **Streamlit App** [gmm-hmm-trading-and-backtest.streamlit.app](https://gmm-hmm-trading-and-backtest.streamlit.app/)
 
 ---
 
