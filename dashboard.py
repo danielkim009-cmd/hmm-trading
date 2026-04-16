@@ -973,17 +973,17 @@ if _company_profile:
     _website = _company_profile.get("website", "")
     _website_html = (
         f"&nbsp;&nbsp;<a href='{_website}' target='_blank' "
-        f"style='color:#00b0ff; font-size:14px;'>{_website}</a>"
+        f"style='color:#00b0ff; font-size:16px;'>{_website}</a>"
         if _website else ""
     )
     _profile_html_parts = []
     if _tags_html:
         _profile_html_parts.append(
-            f"<p style='margin:0 0 6px 0; font-size:14px;'>{_tags_html}{_website_html}</p>"
+            f"<p style='margin:0 0 6px 0; font-size:16px;'>{_tags_html}{_website_html}</p>"
         )
     if _summary:
         _profile_html_parts.append(
-            f"<p style='margin:0; font-size:15px; color:#ccc; line-height:1.5;'>{_summary}</p>"
+            f"<p style='margin:0; font-size:17px; color:#ccc; line-height:1.5;'>{_summary}</p>"
         )
     if _profile_html_parts:
         st.markdown(
@@ -1167,12 +1167,12 @@ regime_desc_html = f"""
               border:1.5px solid #00e676;
               border-radius:12px; padding:16px;">
     <div style="font-size:20px; margin-bottom:6px;">🟢 <strong style="color:#00e676;">Bull Run</strong></div>
-    <p style="margin:0 0 8px 0; color:#b2dfdb; font-size:13px; line-height:1.5;">
+    <p style="margin:0 0 8px 0; color:#b2dfdb; font-size:15px; line-height:1.5;">
       The HMM state with the <strong>highest mean return</strong> in the training period.
       Characterised by sustained positive price momentum, expanding volatility (ATR rising),
       and above-average trading volume — signs of broad market participation in an uptrend.
     </p>
-    <p style="margin:0; color:#4caf50; font-size:12px;">
+    <p style="margin:0; color:#4caf50; font-size:14px;">
       {"➡ Strategy <strong>enters Long on Bear→Bull transition</strong> (Regime-Only Mode)."
        if backtester.regime_only else
        f"➡ Strategy <strong>enters Long</strong> when ≥ {backtester.min_confirms}/{n_enabled} active confirmations are met."}
@@ -1185,13 +1185,13 @@ regime_desc_html = f"""
               border:1.5px solid #ff1744;
               border-radius:12px; padding:16px;">
     <div style="font-size:20px; margin-bottom:6px;">🔴 <strong style="color:#ff5252;">Bear/Crash</strong></div>
-    <p style="margin:0 0 8px 0; color:#ffcdd2; font-size:13px; line-height:1.5;">
+    <p style="margin:0 0 8px 0; color:#ffcdd2; font-size:15px; line-height:1.5;">
       The HMM state with the <strong>lowest (most negative) mean return</strong>.
       Typically marked by sharp drawdowns, panic selling, spiking implied volatility,
       and volume dominated by sellers. Often corresponds to macro risk-off events
       or exchange-driven liquidation cascades.
     </p>
-    <p style="margin:0; color:#ef5350; font-size:12px;">
+    <p style="margin:0; color:#ef5350; font-size:14px;">
       {"➡ Strategy <strong>exits immediately on the first Bear bar</strong> (Regime-Only Mode). A 48-hour cooldown prevents re-entry."
        if backtester.regime_only else
        "➡ Strategy <strong>exits immediately</strong> when this regime is detected. A 48-hour cooldown prevents re-entry after any exit."}
@@ -1204,13 +1204,13 @@ regime_desc_html = f"""
               border:1.5px solid #ffd740;
               border-radius:12px; padding:16px;">
     <div style="font-size:20px; margin-bottom:6px;">🟡 <strong style="color:#ffd740;">Neutral/Transition</strong></div>
-    <p style="margin:0 0 8px 0; color:#fff9c4; font-size:13px; line-height:1.5;">
+    <p style="margin:0 0 8px 0; color:#fff9c4; font-size:15px; line-height:1.5;">
       All remaining HMM states (5 out of 7). These capture <strong>sideways, ranging,
       or transitioning market conditions</strong> — low directional conviction, mixed signals,
       consolidation phases, or the brief periods between a Bull and Bear state.
       Returns are near zero on average.
     </p>
-    <p style="margin:0; color:#ffca28; font-size:12px;">
+    <p style="margin:0; color:#ffca28; font-size:14px;">
       {"➡ Strategy <strong>enters Long on Bear→Neutral transition</strong>; holds until Bear detected (Regime-Only Mode)."
        if backtester.regime_only else
        "➡ Strategy stays in <strong>Cash / Flat</strong>. No new entries are triggered."}
@@ -1262,16 +1262,16 @@ for rank, color, regime, icon, name, desc in _state_rows:
   <td style="text-align:center; font-weight:700; color:{color}; padding:8px 12px; white-space:nowrap;">
     {rank}
   </td>
-  <td style="padding:8px 12px; white-space:nowrap; color:{color}; font-size:13px; font-weight:600;">
+  <td style="padding:8px 12px; white-space:nowrap; color:{color}; font-size:15px; font-weight:600;">
     {icon}&nbsp; {name}
   </td>
   <td style="padding:8px 12px; white-space:nowrap;">
     <span style="background:{color}22; border:1px solid {color}55; border-radius:4px;
-                 padding:2px 8px; font-size:11px; color:{color}; font-weight:600;">
+                 padding:2px 8px; font-size:13px; color:{color}; font-weight:600;">
       {regime}
     </span>
   </td>
-  <td style="padding:8px 12px; color:#b0b0b0; font-size:12px; line-height:1.5;">
+  <td style="padding:8px 12px; color:#b0b0b0; font-size:14px; line-height:1.5;">
     {desc}
   </td>
 </tr>"""
@@ -1281,10 +1281,10 @@ st.markdown(
 <table style="width:100%; border-collapse:collapse; background:#0d0d0d;">
   <thead>
     <tr style="border-bottom:2px solid #2a2a2a; background:#111;">
-      <th style="padding:8px 12px; color:#888; font-size:11px; letter-spacing:.8px; text-align:center; width:60px;">#</th>
-      <th style="padding:8px 12px; color:#888; font-size:11px; letter-spacing:.8px; text-align:left;">SUB-STATE</th>
-      <th style="padding:8px 12px; color:#888; font-size:11px; letter-spacing:.8px; text-align:left;">REGIME</th>
-      <th style="padding:8px 12px; color:#888; font-size:11px; letter-spacing:.8px; text-align:left;">CHARACTERISTICS</th>
+      <th style="padding:8px 12px; color:#888; font-size:13px; letter-spacing:.8px; text-align:center; width:60px;">#</th>
+      <th style="padding:8px 12px; color:#888; font-size:13px; letter-spacing:.8px; text-align:left;">SUB-STATE</th>
+      <th style="padding:8px 12px; color:#888; font-size:13px; letter-spacing:.8px; text-align:left;">REGIME</th>
+      <th style="padding:8px 12px; color:#888; font-size:13px; letter-spacing:.8px; text-align:left;">CHARACTERISTICS</th>
     </tr>
   </thead>
   <tbody>
