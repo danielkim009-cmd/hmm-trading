@@ -91,11 +91,11 @@ REGIME_DELTA = {
 #  WATCHLIST  (persisted to browser localStorage — survives tab/browser close)
 # ===========================================================================
 _DEFAULT_WATCHLIST = [
-    "AAPL", "AG", "AMD", "AMZN", "AVGO", "BTC-USD", "BWXT", "CIEN", "CL=F",
+    "AAPL", "AMD", "AMZN", "AVGO", "BTC-USD", "BWXT", "CIEN", "CL=F",
     "COHR", "ES=F", "ETH-USD", "EWY", "GC=F", "GDX", "GEV", "GLD", "GLW",
     "GOOG", "HG=F", "INTC", "IWM", "KR", "LITE", "MU", "NVDA", "OKLO",
-    "PLTR", "QCOM", "QQQ", "SI=F", "SLV", "SMR", "SNDK", "SOL-USD", "SPY",
-    "TLT", "TSLA", "USO", "VRT", "VRTX", "WDC",
+    "QCOM", "QQQ", "SI=F", "SLV", "SMR", "SNDK", "SOL-USD", "SPY",
+    "TLT", "TSLA", "USO", "VRT", "WDC",
 ]
 _LS_KEY = "hmm_watchlist"
 

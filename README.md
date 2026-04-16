@@ -99,7 +99,7 @@ Ticker symbols must be recognised by Yahoo Finance. The default watchlist includ
 
 | Category | Tickers |
 |---|---|
-| **Stocks** | AG, AMD, AMZN, AVGO, BWXT, CIEN, COHR, GEV, GLW, GOOG, INTC, LITE, MU, NVDA, OKLO, PLTR, SMR, SNDK, VRT, VRTX, WDC |
+| **Stocks** | AMD, AMZN, AVGO, BWXT, CIEN, COHR, GEV, GLW, GOOG, INTC, LITE, MU, NVDA, OKLO, SMR, SNDK, VRT, WDC |
 | **Crypto** | BTC-USD, ETH-USD, SOL-USD |
 | **Futures** | CL=F (Crude Oil), ES=F (S&P 500 Futures), GC=F (Gold), HG=F (Copper), SI=F (Silver) |
 | **ETFs** | EWY, GDX, GLD, IWM, QQQ, SLV, SPY, TLT, USO |
