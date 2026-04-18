@@ -4,6 +4,8 @@ A professional **regime-based algorithmic trading system** that uses a **7-state
 
 Works with any ticker recognised by Yahoo Finance — stocks, ETFs, crypto, futures, and indices.
 
+> *Inspired by the pioneering work of **Jim Simons** and [**Renaissance Technologies**](https://www.rentec.com/), whose Medallion Fund demonstrated that quantitative, model-driven strategies — including Hidden Markov Models — could systematically extract signal from market noise. This project applies those same principles at an accessible scale.*
+
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
