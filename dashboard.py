@@ -1841,10 +1841,11 @@ def _build_tv_chart_html(
   // ── EMA-50 overlay (amber) ────────────────────────────────────────────────
   if (SMA_DATA.length > 0) {{
     const smaSeries = chart.addLineSeries({{
-      color:            '#ffd740',
-      lineWidth:        1,
-      priceLineVisible: false,
-      lastValueVisible: false,
+      color:                  '#ffd740',
+      lineWidth:              1,
+      priceLineVisible:       false,
+      lastValueVisible:       false,
+      crosshairMarkerVisible: false,
     }});
     smaSeries.setData(SMA_DATA);
   }}
@@ -1852,10 +1853,11 @@ def _build_tv_chart_html(
   // ── EMA-21 overlay (sky blue) ─────────────────────────────────────────────
   if (EMA21_DATA.length > 0) {{
     const ema21Series = chart.addLineSeries({{
-      color:            '#29b6f6',
-      lineWidth:        1,
-      priceLineVisible: false,
-      lastValueVisible: false,
+      color:                  '#29b6f6',
+      lineWidth:              1,
+      priceLineVisible:       false,
+      lastValueVisible:       false,
+      crosshairMarkerVisible: false,
     }});
     ema21Series.setData(EMA21_DATA);
   }}
@@ -1863,10 +1865,11 @@ def _build_tv_chart_html(
   // ── EMA-100 overlay (purple) ──────────────────────────────────────────────
   if (EMA100_DATA.length > 0) {{
     const ema100Series = chart.addLineSeries({{
-      color:            '#ab47bc',
-      lineWidth:        1,
-      priceLineVisible: false,
-      lastValueVisible: false,
+      color:                  '#ab47bc',
+      lineWidth:              1,
+      priceLineVisible:       false,
+      lastValueVisible:       false,
+      crosshairMarkerVisible: false,
     }});
     ema100Series.setData(EMA100_DATA);
   }}
