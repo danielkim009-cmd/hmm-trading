@@ -966,10 +966,10 @@ if _company_profile:
         f"<span style='color:#aaa;'>{t}</span>" for t in _tags
     )
     _summary = _company_profile.get("summary", "")
-    # Truncate to ~200 words
+    # Truncate to ~100 words
     _words = _summary.split()
-    if len(_words) > 200:
-        _summary = " ".join(_words[:200]) + " …"
+    if len(_words) > 100:
+        _summary = " ".join(_words[:100]) + " …"
     _website = _company_profile.get("website", "")
     _website_html = (
         f"&nbsp;&nbsp;<a href='{_website}' target='_blank' "
