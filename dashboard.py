@@ -162,6 +162,7 @@ with st.sidebar:
         # Apply a pending ticker selected from the watchlist dropdown
         if st.session_state.get("_apply_ticker"):
             st.session_state["ticker_sym"] = st.session_state.pop("_apply_ticker")
+            st.session_state["watchlist_select"] = "── Saved Tickers ──"
 
         st.session_state.setdefault("ticker_sym", "SPY")
 
@@ -195,12 +196,14 @@ with st.sidebar:
 
         # ── Watchlist dropdown ────────────────────────────────────────────
         _wl = st.session_state["watchlist"]
+        st.session_state.setdefault("watchlist_select", "── Saved Tickers ──")
         _selected = st.selectbox(
             label             = "Watchlist",
             options           = ["── Saved Tickers ──"] + _wl,
             label_visibility  = "collapsed",
+            key               = "watchlist_select",
         )
-        if _selected != "── Saved Tickers ──" and _selected != ticker_symbol:
+        if _selected != "── Saved Tickers ──":
             st.session_state["_apply_ticker"] = _selected
             st.rerun()
 
