@@ -163,9 +163,10 @@ with st.sidebar:
         if st.session_state.get("_apply_ticker"):
             st.session_state["ticker_sym"] = st.session_state.pop("_apply_ticker")
 
+        st.session_state.setdefault("ticker_sym", "SPY")
+
         ticker_symbol = st.text_input(
             label       = "Ticker Symbol",
-            value       = "BTC-USD",
             key         = "ticker_sym",
             placeholder = "e.g. BTC-USD, ETH-USD, AAPL, SPY…",
             help        = (
