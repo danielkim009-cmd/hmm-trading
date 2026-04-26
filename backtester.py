@@ -88,7 +88,7 @@ BEAR_CONFIRM_DAYS   = 5          # consecutive Bear bars required before exiting
                                   # (prevents single-day "false Bear" spikes from closing the trade)
 MIN_HOLD_DAYS       = 7          # minimum calendar days to hold before regime exit fires
                                   # (trailing stop can still exit earlier if enabled)
-INITIAL_CAPITAL     = 100_000.0  # USD starting capital for backtest
+INITIAL_CAPITAL     = 10_000.0   # USD starting capital for backtest
 
 
 # ===========================================================================
