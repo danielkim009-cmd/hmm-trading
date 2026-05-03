@@ -219,19 +219,46 @@ with st.sidebar:
         refresh = st.button("🔄 Refresh Data & Re-run", use_container_width=True,
                             help="Clear cache and re-download data")
 
-        lookback_days = st.slider(
-            label     = "Look-back Period (days)",
-            min_value = 365,
-            max_value = 1825,
-            value     = 365,
-            step      = 30,
-            help      = (
-                "Number of calendar days of daily OHLCV data to download.\n"
-                "730 ≈ 2 years  |  1095 ≈ 3 years  |  1825 ≈ 5 years\n"
-                "More history = better HMM training, especially for identifying "
-                "Bear/Crash states which are rare events."
+        timeframe = st.radio(
+            label   = "Timeframe",
+            options = ["Daily", "Monthly"],
+            index   = 0,
+            horizontal = True,
+            help    = (
+                "Daily: standard daily bars (up to 5 years).\n"
+                "Monthly: monthly bars for long-term regime analysis (up to 20 years)."
             ),
         )
+
+        if timeframe == "Monthly":
+            lookback_days = st.slider(
+                label     = "Look-back Period (years)",
+                min_value = 3,
+                max_value = 20,
+                value     = 10,
+                step      = 1,
+                help      = (
+                    "Number of years of monthly OHLCV data to download.\n"
+                    "More history = better HMM training, especially for identifying "
+                    "Bear/Crash states which are rare events."
+                ),
+            ) * 365  # convert years to days
+            data_interval = "1mo"
+        else:
+            lookback_days = st.slider(
+                label     = "Look-back Period (days)",
+                min_value = 365,
+                max_value = 1825,
+                value     = 365,
+                step      = 30,
+                help      = (
+                    "Number of calendar days of daily OHLCV data to download.\n"
+                    "730 ≈ 2 years  |  1095 ≈ 3 years  |  1825 ≈ 5 years\n"
+                    "More history = better HMM training, especially for identifying "
+                    "Bear/Crash states which are rare events."
+                ),
+            )
+            data_interval = "1d"
 
         st.markdown("---")
 
@@ -395,7 +422,10 @@ with st.sidebar:
                                      "to find the combination with the highest Total Return "
                                      "on this asset's historical data."
                                  ))
-        st.caption(f"Data: {ticker_symbol} · Daily · Last {lookback_days} days · yfinance")
+        _tf_label = "Monthly" if data_interval == "1mo" else "Daily"
+        _period_label = (f"{lookback_days // 365} years" if data_interval == "1mo"
+                         else f"{lookback_days} days")
+        st.caption(f"Data: {ticker_symbol} · {_tf_label} · Last {_period_label} · yfinance")
 
     # =========================================================================
     #  STOCK SCREENER SIDEBAR
@@ -478,6 +508,7 @@ with st.sidebar:
         regime_only = False; use_trail_stop = False; bear_confirm_days = 5
         min_hold_days = 7; initial_capital = int(INITIAL_CAPITAL)
         enabled_confirmations = []; n_enabled = 9; min_confirms = 3
+        data_interval = "1d"
 
 
 # Scope safety for backtester mode
@@ -816,6 +847,7 @@ def load_and_run(
     bear_confirm_days     : int,
     min_hold_days         : int,
     regime_only           : bool = False,
+    interval              : str  = "1d",
 ):
     """
     Download data, run the full HMM + backtest pipeline, and return
@@ -823,7 +855,7 @@ def load_and_run(
 
     Cache key includes all strategy params so any change triggers a re-run.
     """
-    raw_df = dl.load(ticker=ticker, period_days=lookback)
+    raw_df = dl.load(ticker=ticker, period_days=lookback, interval=interval)
     if raw_df.empty:
         return None, raw_df
     enabled_list = list(enabled_confirms_tuple) if enabled_confirms_tuple else None
@@ -916,6 +948,7 @@ with st.spinner(
         bear_confirm_days,
         min_hold_days,
         regime_only,
+        data_interval,
     )
 
 # ---------------------------------------------------------------------------
@@ -1571,6 +1604,7 @@ def _build_tv_chart_html(
     regime_key      : str = "",
     prediction_json : str = "",
     height          : int = 500,
+    interval        : str = "1d",
 ) -> str:
     """
     Build a TradingView-style candlestick chart HTML using lightweight-charts.
@@ -1584,9 +1618,10 @@ def _build_tv_chart_html(
     sma_data    = []
 
     # Pre-compute EMA-21 and EMA-100 on the close series
+    # Hide EMA-100 for monthly timeframe (too few bars to be meaningful)
     close_series = _df["close"]
     ema21_series  = close_series.ewm(span=21,  adjust=False).mean()
-    ema100_series = close_series.ewm(span=100, adjust=False).mean()
+    ema100_series = close_series.ewm(span=100, adjust=False).mean() if interval != "1mo" else None
     ema21_data  = []
     ema100_data = []
 
@@ -1611,11 +1646,12 @@ def _build_tv_chart_html(
                 "value": round(float(row["sma_baseline"]), 2),
             })
         ema21_val  = ema21_series.get(ts)
-        ema100_val = ema100_series.get(ts)
         if ema21_val is not None and pd.notna(ema21_val):
             ema21_data.append({"time": date_str, "value": round(float(ema21_val), 2)})
-        if ema100_val is not None and pd.notna(ema100_val):
-            ema100_data.append({"time": date_str, "value": round(float(ema100_val), 2)})
+        if ema100_series is not None:
+            ema100_val = ema100_series.get(ts)
+            if ema100_val is not None and pd.notna(ema100_val):
+                ema100_data.append({"time": date_str, "value": round(float(ema100_val), 2)})
 
     # ── Regime background bands ──────────────────────────────────────────────
     regime_bands = []
@@ -1737,7 +1773,7 @@ def _build_tv_chart_html(
   const emaLegendItems = [
     {{ label: 'EMA-50',  color: '#ffd740' }},
     {{ label: 'EMA-21',  color: '#29b6f6' }},
-    {{ label: 'EMA-100', color: '#ab47bc' }},
+    ...(EMA100_DATA.length > 0 ? [{{ label: 'EMA-100', color: '#ab47bc' }}] : []),
   ];
   emaLegendItems.forEach(item => {{
     const div = document.createElement('div');
@@ -2008,6 +2044,7 @@ chart_html = _build_tv_chart_html(
     df_chart, ticker_symbol, backtester.trade_log,
     live_key=live_key, regime_key=regime_key,
     prediction_json=_prediction_json,
+    interval=data_interval,
 )
 components.html(chart_html, height=510, scrolling=False)
 

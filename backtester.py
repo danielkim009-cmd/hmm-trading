@@ -537,9 +537,11 @@ class Backtester:
         # data_loader downloads INDICATOR_WARMUP extra days so that long-window
         # indicators (SMA-100, MACD) are fully populated for every bar the user
         # actually requested.  Trim those warmup rows now so the chart and
-        # backtest cover exactly the requested period, with all SMAs valid
-        # from bar 1.
-        df = df[df["sma_100"].notna()].copy()
+        # backtest cover exactly the requested period.
+        # Use sma_20 as the trim boundary (not sma_100) so that monthly data
+        # retains most of its history.  The tradeable_mask below still prevents
+        # trading on bars where longer SMAs are NaN.
+        df = df[df["sma_20"].notna()].copy()
 
         # ---- Step 3: Build tradeable mask ----
         indicator_cols = [

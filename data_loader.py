@@ -56,7 +56,9 @@ def download_data(
     today      = datetime.now(timezone.utc).date()   # UTC matches yfinance bar labels
     # Download extra warmup days so indicator rolling windows are fully
     # populated for every bar in the user-requested period.
-    start_date = today - timedelta(days=period_days + INDICATOR_WARMUP)
+    # Monthly bars need more calendar-day warmup since each bar spans ~30 days.
+    warmup = INDICATOR_WARMUP if interval == "1d" else 750
+    start_date = today - timedelta(days=period_days + warmup)
     start_str  = start_date.strftime("%Y-%m-%d")
 
     print(f"[DataLoader] Downloading {ticker} {interval} data "
