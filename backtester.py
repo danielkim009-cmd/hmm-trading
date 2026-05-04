@@ -10,7 +10,7 @@ Responsibilities
 2. Technical Indicators  – compute all 8 confirmation signals on the full
                            OHLCV DataFrame.
 3. Strategy Logic        – entry / exit rules with configurable aggressiveness.
-4. Risk Management       – leverage, 48-hour cooldown, optional trailing stop.
+4. Risk Management       – leverage, 48-hour cooldown.
 5. Backtester            – vectorised simulation returning an equity curve,
                            trade log, and performance metrics.
 """
@@ -80,14 +80,11 @@ NORMAL_MIN_CONFIRMS     = 3      # out of 9 (≈ 33% threshold)
 # Strategy parameters – Aggressive mode
 AGGRESSIVE_LEVERAGE     = 4.0
 AGGRESSIVE_MIN_CONFIRMS = 5      # out of 9 (≈ 56% threshold)
-AGGRESSIVE_TRAIL_PCT    = 0.02   # 2 % trailing stop
-
 # Risk management
 COOLDOWN_DAYS       = 2          # calendar days to pause after any exit (daily bars)
 BEAR_CONFIRM_DAYS   = 5          # consecutive Bear bars required before exiting
                                   # (prevents single-day "false Bear" spikes from closing the trade)
 MIN_HOLD_DAYS       = 7          # minimum calendar days to hold before regime exit fires
-                                  # (trailing stop can still exit earlier if enabled)
 INITIAL_CAPITAL     = 10_000.0   # USD starting capital for backtest
 
 
@@ -475,8 +472,6 @@ class Backtester:
     min_confirms : int
         Number of enabled confirmations that must be met before entering.
         Defaults to NORMAL_MIN_CONFIRMS (7).
-    use_trail_stop : bool
-        Enable a 2% trailing stop-loss on open positions.
     """
 
     def __init__(
@@ -485,7 +480,6 @@ class Backtester:
         leverage_override                 = None,
         enabled_confirmations: list | None = None,
         min_confirms         : int         = NORMAL_MIN_CONFIRMS,
-        use_trail_stop       : bool        = False,
         bear_confirm_days    : int         = BEAR_CONFIRM_DAYS,
         min_hold_days        : int         = MIN_HOLD_DAYS,
         regime_only          : bool        = False,
@@ -493,8 +487,6 @@ class Backtester:
         self.initial_capital       = initial_capital
         self.enabled_confirmations = enabled_confirmations
         self.min_confirms          = min_confirms
-        self.use_trail_stop        = use_trail_stop
-        self.trail_pct             = AGGRESSIVE_TRAIL_PCT
         self.bear_confirm_days     = bear_confirm_days  # consecutive Bear bars needed to exit
         self.min_hold_days         = min_hold_days      # min days to hold before regime exit
         self.regime_only           = regime_only        # ignore confirmations; trade on regime changes only
@@ -624,9 +616,6 @@ class Backtester:
             # EXIT LOGIC
             # -------------------------------------------------------
             if position_open:
-                if self.use_trail_stop and row["close"] > peak_price:
-                    peak_price = row["close"]
-
                 exit_reason = None
 
                 if self.regime_only:
@@ -639,29 +628,17 @@ class Backtester:
                     else:
                         bear_streak = 0
 
-                    # Exit 1: consecutive Bear bars (no min_hold_days gate — Bear
+                    # Exit: consecutive Bear bars (no min_hold_days gate — Bear
                     # must always be able to close the position regardless of duration)
                     if regime == LABEL_BEAR and bear_streak >= self.bear_confirm_days:
                         exit_reason = f"Bear×{bear_streak}d"
-
-                    # Exit 2: Trailing stop — gated by min_hold_days to prevent
-                    # getting stopped out in the first few days of a new position.
-                    hold_days = (ts - entry_time).days if entry_time is not None else 0
-                    if (self.use_trail_stop and peak_price > 0
-                            and hold_days >= self.min_hold_days):
-                        stop_level = peak_price * (1 - self.trail_pct)
-                        if row["close"] <= stop_level:
-                            exit_reason = exit_reason or "TrailingStop"
 
                 if exit_reason:
                     pnl_pct     = (row["close"] - entry_price) / entry_price * self.leverage
                     pnl_usd     = equity * pnl_pct
                     equity     += pnl_usd
                     exit_regime = regime
-                    if exit_reason == "TrailingStop":
-                        transition = f"{entry_regime} → {exit_regime} (Trailing Stop)"
-                    else:
-                        transition = f"{entry_regime} → {exit_regime}"
+                    transition = f"{entry_regime} → {exit_regime}"
 
                     self.trade_log.append({
                         "entry_time"       : entry_time,
@@ -1000,7 +977,6 @@ def build_and_run(
     leverage_override                 = None,
     enabled_confirmations: list | None = None,
     min_confirms         : int         = NORMAL_MIN_CONFIRMS,
-    use_trail_stop       : bool        = False,
     bear_confirm_days    : int         = BEAR_CONFIRM_DAYS,
     min_hold_days        : int         = MIN_HOLD_DAYS,
     regime_only          : bool        = False,
@@ -1016,7 +992,6 @@ def build_and_run(
     enabled_confirmations : Which of the 9 confirmations are active.
                             None = all 9 active.
     min_confirms          : How many enabled confirmations must be True to enter.
-    use_trail_stop        : Enable 2% trailing stop-loss.
     bear_confirm_days     : Consecutive Bear bars needed before exit fires.
     min_hold_days         : Minimum calendar days to hold before regime exit.
 
@@ -1029,7 +1004,6 @@ def build_and_run(
         leverage_override     = leverage_override,
         enabled_confirmations = enabled_confirmations,
         min_confirms          = min_confirms,
-        use_trail_stop        = use_trail_stop,
         bear_confirm_days     = bear_confirm_days,
         min_hold_days         = min_hold_days,
         regime_only           = regime_only,
@@ -1062,7 +1036,6 @@ def _select_best_confirmations(
     pool          : list,
     initial_capital: float,
     leverage_override,
-    use_trail_stop: bool,
 ) -> list:
     """
     Greedy forward selection of confirmation filters.
@@ -1102,7 +1075,6 @@ def _select_best_confirmations(
                         min_confirms          = mc,
                         bear_confirm_days     = bd,
                         min_hold_days         = 0,
-                        use_trail_stop        = use_trail_stop,
                     )
                     bt.engine = base_bt.engine
                     bt._run_simulation(trial_df, tradeable_mask)
@@ -1134,7 +1106,6 @@ def optimize_params(
     initial_capital       : float      = INITIAL_CAPITAL,
     leverage_override                  = None,
     enabled_confirmations : list | None = None,
-    use_trail_stop        : bool        = False,
 ) -> dict:
     """
     Grid-search key strategy parameters on historical data to maximise
@@ -1159,7 +1130,6 @@ def optimize_params(
     leverage_override     : Leverage multiplier (1×, 2×, 4×).
     enabled_confirmations : Pool of confirmations to search over.
                             None = all 10 confirmations.
-    use_trail_stop        : Whether trailing stop is active.
 
     Returns
     -------
@@ -1175,7 +1145,6 @@ def optimize_params(
         initial_capital       = initial_capital,
         leverage_override     = leverage_override,
         enabled_confirmations = enabled_confirmations,
-        use_trail_stop        = use_trail_stop,
     )
     prepared_df, tradeable_mask = base._prepare(raw_df)
 
@@ -1183,7 +1152,7 @@ def optimize_params(
     pool             = list(enabled_confirmations) if enabled_confirmations else list(ALL_CONFIRMATIONS)
     selected_confirms = _select_best_confirmations(
         prepared_df, tradeable_mask, base,
-        pool, initial_capital, leverage_override, use_trail_stop,
+        pool, initial_capital, leverage_override,
     )
 
     # Recompute confirms_count on prepared_df for the winning filter set
@@ -1197,7 +1166,7 @@ def optimize_params(
     # ── Phase 2: Parameter grid search with selected filters ─────────
     bear_days_grid = list(range(1, 8))                   # 1–7
     min_conf_grid  = list(range(1, n_active + 1))        # 1–n_selected
-    hold_days_grid = [0, 3, 5, 7, 10, 14]               # trailing-stop gate
+    hold_days_grid = [0, 3, 5, 7, 10, 14]               # min hold before exit
 
     total = len(bear_days_grid) * len(min_conf_grid) * len(hold_days_grid)
     print(f"[optimize_params] Phase 2 — grid search {total} combinations "
@@ -1214,7 +1183,6 @@ def optimize_params(
                     leverage_override     = leverage_override,
                     enabled_confirmations = selected_confirms,
                     min_confirms          = min_conf,
-                    use_trail_stop        = use_trail_stop,
                     bear_confirm_days     = bear_days,
                     min_hold_days         = hold_days,
                 )

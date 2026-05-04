@@ -303,12 +303,6 @@ with st.sidebar:
                 icon="⚡",
             )
 
-        use_trail_stop = st.toggle(
-            label = "🛡 Trailing Stop (2%)",
-            value = False,
-            help  = "Apply a 2% trailing stop-loss to all open positions.",
-        )
-
         bear_confirm_days = st.slider(
             label     = "Bear Confirmation Days",
             min_value = 1,
@@ -332,8 +326,7 @@ with st.sidebar:
             help      = (
                 "Minimum number of calendar days to hold a position before a regime exit can fire.\n"
                 "0 = no minimum (exit can happen immediately after entry)\n"
-                "3 = default — avoids whipsawing out within the first 3 days\n"
-                "Trailing stop is not affected by this setting."
+                "3 = default — avoids whipsawing out within the first 3 days"
             ),
         )
 
@@ -393,15 +386,13 @@ with st.sidebar:
 
         st.markdown("---")
         st.markdown("### 📊 Mode Summary")
-        trail_label  = "✅ On" if use_trail_stop else "❌ Off"
         regime_label = "⚡ Regime-Only" if regime_only else "🔢 Confirmation-Gated"
         if regime_only:
             st.info(
                 f"**Mode:** {regime_label}  \n"
                 f"**Leverage:** {leverage_label}  \n"
                 f"**Entry:** Bear→Bull or Bear→Neutral transition  \n"
-                f"**Exit:** First Bear regime bar  \n"
-                f"**Trailing Stop:** {trail_label}"
+                f"**Exit:** First Bear regime bar"
             )
         else:
             st.info(
@@ -410,8 +401,7 @@ with st.sidebar:
                 f"**Active Signals:** {n_enabled} / {len(bt_module.ALL_CONFIRMATIONS)}  \n"
                 f"**Entry Threshold:** {min_confirms} / {n_enabled}  \n"
                 f"**Bear Confirm Days:** {bear_confirm_days}  \n"
-                f"**Min Hold Days:** {min_hold_days}  \n"
-                f"**Trailing Stop:** {trail_label}"
+                f"**Min Hold Days:** {min_hold_days}"
             )
 
         st.markdown("---")
@@ -505,7 +495,7 @@ with st.sidebar:
         # Unused in screener mode — set defaults to avoid NameError
         refresh = optimize_btn = False
         ticker_symbol = "BTC-USD"; lookback_days = 730; selected_leverage = 1.0
-        regime_only = False; use_trail_stop = False; bear_confirm_days = 5
+        regime_only = False; bear_confirm_days = 5
         min_hold_days = 7; initial_capital = int(INITIAL_CAPITAL)
         enabled_confirmations = []; n_enabled = 9; min_confirms = 3
         data_interval = "1d"
@@ -843,7 +833,6 @@ def load_and_run(
     leverage              : float,
     enabled_confirms_tuple: tuple,
     min_confirms          : int,
-    use_trail_stop        : bool,
     bear_confirm_days     : int,
     min_hold_days         : int,
     regime_only           : bool = False,
@@ -866,7 +855,6 @@ def load_and_run(
             leverage_override     = leverage,
             enabled_confirmations = enabled_list,
             min_confirms          = min_confirms,
-            use_trail_stop        = use_trail_stop,
             bear_confirm_days     = bear_confirm_days,
             min_hold_days         = min_hold_days,
             regime_only           = regime_only,
@@ -883,12 +871,11 @@ def optimize_for_asset(
     lookback              : int,
     leverage              : float,
     enabled_confirms_tuple: tuple,
-    use_trail_stop        : bool,
     capital               : float,
 ) -> dict:
     """
     Download data and run the parameter grid-search.
-    Cached per (ticker, lookback, leverage, confirmations, trail_stop, capital)
+    Cached per (ticker, lookback, leverage, confirmations, capital)
     so repeated clicks don't re-run the expensive search.
     """
     raw_df = dl.load(ticker=ticker, period_days=lookback)
@@ -901,7 +888,6 @@ def optimize_for_asset(
             initial_capital       = float(capital),
             leverage_override     = leverage,
             enabled_confirmations = enabled_list,
-            use_trail_stop        = use_trail_stop,
         )
     except Exception as exc:
         print(f"[Dashboard] Optimization failed: {exc}")
@@ -921,7 +907,6 @@ if optimize_btn:
             lookback_days,
             selected_leverage,
             tuple(sorted(enabled_confirmations)),
-            use_trail_stop,
             float(initial_capital),
         )
     if _opt is not None:
@@ -944,7 +929,6 @@ with st.spinner(
         selected_leverage,
         tuple(sorted(enabled_confirmations)),
         min_confirms,
-        use_trail_stop,
         bear_confirm_days,
         min_hold_days,
         regime_only,
@@ -2209,7 +2193,6 @@ with st.expander("📐 Full Metrics Detail"):
         {"Metric": "Bear Confirm Days",         "Value": f"{backtester.bear_confirm_days} consecutive Bear bars"},
         {"Metric": "Min Hold Period",           "Value": f"{backtester.min_hold_days} days"},
         {"Metric": "Cooldown Period",           "Value": "2 days after exit"},
-        {"Metric": "Trailing Stop",             "Value": "2% (active)" if backtester.use_trail_stop else "Disabled"},
     ])
     st.dataframe(detail_df, use_container_width=True, hide_index=True)
 
@@ -2292,7 +2275,7 @@ if _opt_result is not None and _opt_ticker == ticker_symbol:
     oc2.metric("Min Confirmations",  show_params["min_confirms"],
                help="Technical signals that must align for entry")
     oc3.metric("Min Hold Days",      show_params["min_hold_days"],
-               help="Days before trailing stop can fire (only when trailing stop is on)")
+               help="Minimum days to hold a position before a regime exit can fire")
     oc4.metric(card_label,           f"{show_ret:+.1f}%",
                delta=f"{delta_vs_cur:+.1f}% vs current",
                delta_color="normal" if delta_vs_cur >= 0 else "inverse")
