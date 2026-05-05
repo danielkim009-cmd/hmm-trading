@@ -12,6 +12,8 @@ Works with any ticker recognised by Yahoo Finance — stocks, ETFs, crypto, futu
 
 🚀 **Streamlit App** [gmm-hmm-trading-and-backtest.streamlit.app](https://gmm-hmm-trading-and-backtest.streamlit.app/)
 
+🎬 **Video Overview** [Watch on YouTube](https://youtu.be/KOgGnvhgtFA?si=0prCtgkSfel8AzKv) — generated with Google NotebookLM
+
 ---
 
 ## 🚀 Quick Start
@@ -90,8 +92,7 @@ All controls are in the sidebar:
 | Look-back Period | 365 days | Historical data window for HMM training |
 | Leverage | 1× | 1×, 2×, or 4× position sizing |
 | Bear Confirm Days | 5 | Consecutive Bear bars required to exit |
-| Min Hold Days | 7 | Minimum hold before trailing stop fires |
-| Trailing Stop | Off | 2% trailing stop-loss |
+| Min Hold Days | 7 | Minimum hold before regime exit fires |
 | Regime-Only Mode | Off | Trade on regime transitions only |
 | Min Confirmations | 3/10 | Minimum technical checks for entry |
 
