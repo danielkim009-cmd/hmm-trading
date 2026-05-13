@@ -1913,13 +1913,18 @@ def _build_tv_chart_html(
 
   // ── Volume histogram (lower pane, 20% height) ────────────────────────────
   const volSeries = chart.addHistogramSeries({{
-    priceFormat:      {{ type: 'volume' }},
-    priceScaleId:     'vol',
-    lastValueVisible: false,
-    priceLineVisible: false,
+    priceFormat:       {{ type: 'volume' }},
+    priceScaleId:      'vol',
+    lastValueVisible:  true,
+    priceLineVisible:  true,
+    priceLineStyle:    LightweightCharts.LineStyle.Dotted,
+    priceLineWidth:    1,
+    priceLineColor:    '#8b949e',
   }});
   volSeries.priceScale().applyOptions({{
     scaleMargins: {{ top: 0.80, bottom: 0 }},
+    visible: true,
+    borderColor: '#30363d',
   }});
   volSeries.setData(VOL_DATA);
 
@@ -1967,6 +1972,18 @@ def _build_tv_chart_html(
     prevCloseMap.set(CANDLE_DATA[i].time, CANDLE_DATA[i - 1].close);
   }}
 
+  // ── Volume lookup by time ────────────────────────────────────────────────
+  const volMap = new Map();
+  for (const v of VOL_DATA) {{ volMap.set(v.time, v.value); }}
+
+  function formatVolume(v) {{
+    if (v == null || !isFinite(v)) return '—';
+    if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+    return v.toLocaleString();
+  }}
+
   // ── OHLC info (inline with the legend, updates on crosshair move) ────────
   function renderOHLC(time, open, high, low, close) {{
     const prevClose = prevCloseMap.get(time) ?? open;
@@ -1974,6 +1991,7 @@ def _build_tv_chart_html(
     const chgPct = ((chg / prevClose) * 100).toFixed(2);
     const chgColor = chg >= 0 ? '#26a69a' : '#ef5350';
     const sign = chg >= 0 ? '+' : '';
+    const vol  = volMap.get(time);
     ohlcInfo.innerHTML =
       `<span class="val">${{TICKER}}</span>` +
       `<span class="lbl">${{time}}</span>` +
@@ -1981,6 +1999,7 @@ def _build_tv_chart_html(
       `<span><span class="lbl">H</span> <span class="val">${{high.toLocaleString()}}</span></span>` +
       `<span><span class="lbl">L</span> <span class="val">${{low.toLocaleString()}}</span></span>` +
       `<span><span class="lbl">C</span> <span class="val">${{close.toLocaleString()}}</span></span>` +
+      `<span><span class="lbl">V</span> <span class="val">${{formatVolume(vol)}}</span></span>` +
       `<span style="color:${{chgColor}};font-weight:600;">${{sign}}${{chg.toFixed(2)}} (${{sign}}${{chgPct}}%)</span>`;
   }}
   // Initialise with the latest bar
