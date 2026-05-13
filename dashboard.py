@@ -1711,8 +1711,8 @@ def _build_tv_chart_html(
   #chart-wrap {{ width: 100%; position: relative; }}
   #chart {{ width: 100%; }}
   #legend {{
-    position: absolute; top: 8px; left: 8px; z-index: 10;
-    display: flex; flex-wrap: wrap; gap: 8px;
+    position: absolute; top: 8px; left: 8px; right: 8px; z-index: 10;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     pointer-events: none;
   }}
   .leg-item {{
@@ -1724,6 +1724,14 @@ def _build_tv_chart_html(
   .leg-swatch {{
     width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
   }}
+  #ohlc-info {{
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(13,17,23,0.85); border: 1px solid #30363d;
+    border-radius: 4px; padding: 2px 8px;
+    font-size: 11px; color: #e6edf3; white-space: nowrap;
+  }}
+  #ohlc-info .lbl {{ color: #8b949e; }}
+  #ohlc-info .val {{ font-weight: 600; }}
 </style>
 </head>
 <body>
@@ -1776,6 +1784,11 @@ def _build_tv_chart_html(
       `10-Day Forecast <span style="color:${{color}};font-weight:600;">${{sign}}${{PREDICTION.exp_ret_pct}}%</span>`;
     legendEl.appendChild(div);
   }}
+
+  // OHLC info chip — appended last so it appears after the 10-day forecast
+  const ohlcInfo = document.createElement('div');
+  ohlcInfo.id = 'ohlc-info';
+  legendEl.appendChild(ohlcInfo);
 
   // ── Create chart ─────────────────────────────────────────────────────────
   const container = document.getElementById('chart');
@@ -1954,38 +1967,39 @@ def _build_tv_chart_html(
     prevCloseMap.set(CANDLE_DATA[i].time, CANDLE_DATA[i - 1].close);
   }}
 
-  // ── Crosshair tooltip ────────────────────────────────────────────────────
-  const tooltip = document.createElement('div');
-  Object.assign(tooltip.style, {{
-    position: 'absolute', display: 'none', padding: '6px 10px',
-    background: 'rgba(13,17,23,0.9)', border: '1px solid #30363d',
-    borderRadius: '6px', color: '#e6edf3', fontSize: '11px',
-    pointerEvents: 'none', zIndex: '20', whiteSpace: 'nowrap',
-  }});
-  document.getElementById('chart-wrap').appendChild(tooltip);
-
-  chart.subscribeCrosshairMove(param => {{
-    if (!param.point || !param.time) {{ tooltip.style.display = 'none'; return; }}
-    const bar = param.seriesData.get(candleSeries);
-    if (!bar) {{ tooltip.style.display = 'none'; return; }}
-    const {{open, high, low, close}} = bar;
-    const prevClose = prevCloseMap.get(param.time) ?? open;
-    const chg = close - prevClose;
+  // ── OHLC info (inline with the legend, updates on crosshair move) ────────
+  function renderOHLC(time, open, high, low, close) {{
+    const prevClose = prevCloseMap.get(time) ?? open;
+    const chg    = close - prevClose;
     const chgPct = ((chg / prevClose) * 100).toFixed(2);
     const chgColor = chg >= 0 ? '#26a69a' : '#ef5350';
-    tooltip.innerHTML =
-      `<b style="color:#e6edf3">${{param.time}}</b><br>` +
-      `O <b>${{open.toLocaleString()}}</b>  ` +
-      `H <b>${{high.toLocaleString()}}</b>  ` +
-      `L <b>${{low.toLocaleString()}}</b>  ` +
-      `C <b>${{close.toLocaleString()}}</b>  ` +
-      `<span style="color:${{chgColor}}">${{chg >= 0 ? '+' : ''}}${{chg.toFixed(2)}} (${{chg >= 0 ? '+' : ''}}${{chgPct}}%)</span>`;
-    const x = param.point.x;
-    const y = 10;
-    const maxLeft = container.clientWidth - tooltip.offsetWidth - 10;
-    tooltip.style.left    = Math.min(x + 12, maxLeft) + 'px';
-    tooltip.style.top     = y + 'px';
-    tooltip.style.display = 'block';
+    const sign = chg >= 0 ? '+' : '';
+    ohlcInfo.innerHTML =
+      `<span class="val">${{TICKER}}</span>` +
+      `<span class="lbl">${{time}}</span>` +
+      `<span><span class="lbl">O</span> <span class="val">${{open.toLocaleString()}}</span></span>` +
+      `<span><span class="lbl">H</span> <span class="val">${{high.toLocaleString()}}</span></span>` +
+      `<span><span class="lbl">L</span> <span class="val">${{low.toLocaleString()}}</span></span>` +
+      `<span><span class="lbl">C</span> <span class="val">${{close.toLocaleString()}}</span></span>` +
+      `<span style="color:${{chgColor}};font-weight:600;">${{sign}}${{chg.toFixed(2)}} (${{sign}}${{chgPct}}%)</span>`;
+  }}
+  // Initialise with the latest bar
+  if (CANDLE_DATA.length > 0) {{
+    const last = CANDLE_DATA[CANDLE_DATA.length - 1];
+    renderOHLC(last.time, last.open, last.high, last.low, last.close);
+  }}
+
+  chart.subscribeCrosshairMove(param => {{
+    let bar = null;
+    if (param.point && param.time) {{
+      bar = param.seriesData.get(candleSeries);
+    }}
+    if (bar) {{
+      renderOHLC(param.time, bar.open, bar.high, bar.low, bar.close);
+    }} else if (CANDLE_DATA.length > 0) {{
+      const last = CANDLE_DATA[CANDLE_DATA.length - 1];
+      renderOHLC(last.time, last.open, last.high, last.low, last.close);
+    }}
   }});
 
   // ── Responsive resize ────────────────────────────────────────────────────
