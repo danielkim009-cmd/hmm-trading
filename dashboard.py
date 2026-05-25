@@ -93,7 +93,7 @@ REGIME_DELTA = {
 _DEFAULT_WATCHLIST = [
     "AAPL", "AMD", "AMZN", "AVGO", "BTC-USD", "BWXT", "CIEN", "CL=F",
     "COHR", "ES=F", "ETH-USD", "EWY", "GC=F", "GDX", "GEV", "GLD", "GLW",
-    "GOOG", "HG=F", "INTC", "IWM", "KR", "LITE", "MU", "NVDA", "OKLO",
+    "GOOG", "HG=F", "INTC", "IWM", "LITE", "MU", "NVDA", "OKLO",
     "QCOM", "QQQ", "SI=F", "SLV", "SMR", "SNDK", "SOL-USD", "SPY",
     "TLT", "TSLA", "USO", "VRT", "WDC",
 ]
@@ -1763,8 +1763,8 @@ def _build_tv_chart_html(
   }});
   // EMA legend entries
   const emaLegendItems = [
-    {{ label: 'EMA-50',  color: '#ffd740' }},
     {{ label: 'EMA-21',  color: '#29b6f6' }},
+    {{ label: 'EMA-50',  color: '#ffd740' }},
     ...(EMA100_DATA.length > 0 ? [{{ label: 'EMA-100', color: '#ab47bc' }}] : []),
   ];
   emaLegendItems.forEach(item => {{
