@@ -100,12 +100,18 @@ _DEFAULT_WATCHLIST = [
 _LS_KEY = "hmm_watchlist"
 
 def _save_watchlist(tickers: list[str]) -> None:
-    """Write watchlist to browser localStorage."""
-    st_javascript(f"localStorage.setItem('{_LS_KEY}', JSON.stringify({json.dumps(tickers)}))")
+    # Schedule the write; the actual st_javascript call happens at the top level
+    # of the next render so it isn't wiped out by an immediate st.rerun().
+    st.session_state["_wl_pending_save"] = list(tickers)
 
 # Read current value from localStorage.
 # Returns 0 on the first render (JS pending), then the stored string on rerun.
 _ls_value = st_javascript(f"localStorage.getItem('{_LS_KEY}')")
+
+# Write — always at top level so the JS component survives any rerun.
+if "_wl_pending_save" in st.session_state:
+    _pending = st.session_state.pop("_wl_pending_save")
+    st_javascript(f"localStorage.setItem('{_LS_KEY}', JSON.stringify({json.dumps(_pending)}))")
 
 if "watchlist" not in st.session_state:
     # First render: JS not resolved yet → start with default; will be
