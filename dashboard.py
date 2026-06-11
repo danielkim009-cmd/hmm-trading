@@ -1448,6 +1448,38 @@ st.markdown("---")
 # ===========================================================================
 st.subheader(f"📈 {ticker_symbol} Price Chart with HMM Regime Overlay")
 
+if regime_only:
+    _entry_rule = (
+        "first bar of a new <b>🟢 Bull Run</b> regime, or a transition out of "
+        "<b>🔴 Bear/Crash</b> into Bull or Neutral"
+    )
+    _exit_rule = (
+        f"first <b>🔴 Bear/Crash</b> bar (held a minimum of {min_hold_days} bars first)"
+    )
+else:
+    _entry_rule = (
+        f"bar is in the <b>🟢 Bull Run</b> regime <b>and</b> at least "
+        f"<b>{min_confirms} of {n_enabled}</b> enabled technical confirmations are met"
+    )
+    _exit_rule = (
+        f"<b>{bear_confirm_days}</b> consecutive <b>🔴 Bear/Crash</b> bars "
+        f"(held a minimum of {min_hold_days} bars first)"
+    )
+
+st.markdown(
+    f"""
+<div style="background:rgba(255,255,255,0.03); border-left:3px solid #4fc3f7;
+            padding:10px 14px; border-radius:6px; margin-bottom:10px;
+            font-size:13px; line-height:1.55; color:#cfcfcf;
+            font-family:sans-serif;">
+  <b style="color:#4fc3f7;">How trades are placed on this chart</b><br>
+  <span style="color:#00e676;">▲ Buy marker</span> — fires when {_entry_rule}.<br>
+  <span style="color:#ff5252;">▼ Sell marker</span> — fires when the position has been open and the exit condition triggers: {_exit_rule}. The marker label shows the realised P&amp;L %.
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
 
 # ===========================================================================
 #  KERNEL REGRESSION FORECAST
