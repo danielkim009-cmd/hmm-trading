@@ -332,7 +332,7 @@ with st.sidebar:
             help      = (
                 "Minimum number of calendar days to hold a position before a regime exit can fire.\n"
                 "0 = no minimum (exit can happen immediately after entry)\n"
-                "3 = default — avoids whipsawing out within the first 3 days"
+                "7 = default — avoids whipsawing out within the first week"
             ),
         )
 
@@ -1454,7 +1454,7 @@ if regime_only:
         "<b>🔴 Bear/Crash</b> into Bull or Neutral"
     )
     _exit_rule = (
-        f"first <b>🔴 Bear/Crash</b> bar (held a minimum of {min_hold_days} bars first)"
+        f"first <b>🔴 Bear/Crash</b> bar (held a minimum of {min_hold_days} days first)"
     )
 else:
     _entry_rule = (
@@ -1463,7 +1463,7 @@ else:
     )
     _exit_rule = (
         f"<b>{bear_confirm_days}</b> consecutive <b>🔴 Bear/Crash</b> bars "
-        f"(held a minimum of {min_hold_days} bars first)"
+        f"(held a minimum of {min_hold_days} days first)"
     )
 
 st.markdown(

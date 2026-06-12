@@ -617,10 +617,12 @@ class Backtester:
             # -------------------------------------------------------
             if position_open:
                 exit_reason = None
+                days_held   = (ts - entry_time).days
 
                 if self.regime_only:
-                    # Regime-Only mode: exit immediately on the first Bear bar
-                    if regime == LABEL_BEAR:
+                    # Regime-Only mode: exit on the first Bear bar once the
+                    # position has been held at least min_hold_days.
+                    if regime == LABEL_BEAR and days_held >= self.min_hold_days:
                         exit_reason = "Bear Regime"
                 else:
                     if regime == LABEL_BEAR:
@@ -628,9 +630,13 @@ class Backtester:
                     else:
                         bear_streak = 0
 
-                    # Exit: consecutive Bear bars (no min_hold_days gate — Bear
-                    # must always be able to close the position regardless of duration)
-                    if regime == LABEL_BEAR and bear_streak >= self.bear_confirm_days:
+                    # Exit: consecutive Bear bars, gated by min_hold_days.
+                    # The streak keeps counting while the hold gate is active,
+                    # so the exit fires on the first qualifying Bear bar after
+                    # the minimum hold period has elapsed.
+                    if (regime == LABEL_BEAR
+                            and bear_streak >= self.bear_confirm_days
+                            and days_held >= self.min_hold_days):
                         exit_reason = f"Bear×{bear_streak}d"
 
                 if exit_reason:
