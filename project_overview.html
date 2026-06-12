@@ -329,6 +329,11 @@
     $ streamlit run dashboard.py
     <span>— launches the Regime Terminal UI</span>
   </div>
+  <p style="margin-top:24px; font-size:14px; color:var(--text);">
+    🚀 <a href="https://gmm-hmm-trading-and-backtest.streamlit.app/" target="_blank">Live Streamlit App</a>
+    &nbsp;·&nbsp;
+    🎬 <a href="https://youtu.be/KOgGnvhgtFA" target="_blank">Video Overview on YouTube</a>
+  </p>
 </div>
 
 <!-- ═══════════════════════ NAV ════════════════════════ -->
@@ -377,7 +382,7 @@
     <div class="card">
       <div class="file-name">data_loader.py</div>
       <h3>Data Layer</h3>
-      <p>Downloads daily OHLCV data via <code>yf.Ticker.history()</code> (no end date — returns live current bar). Handles timezone normalisation (UTC), indicator warmup (+150 calendar days), and engineers four HMM input features.</p>
+      <p>Downloads daily or monthly OHLCV data via <code>yf.Ticker.history()</code> (no end date — returns live current bar). Handles timezone normalisation (UTC), indicator warmup (+150 calendar days daily, +750 monthly), and engineers four HMM input features.</p>
     </div>
     <div class="card">
       <div class="file-name">backtester.py</div>
@@ -397,7 +402,7 @@
     <div class="card">
       <div class="file-name">requirements.txt</div>
       <h3>Dependencies</h3>
-      <p>yfinance, hmmlearn, pandas, numpy, scikit-learn, streamlit, plotly, pandas-ta. Charting uses <strong>lightweight-charts</strong> v4.2.1 via CDN (no install needed). Install with <code>pip install -r requirements.txt</code>.</p>
+      <p>yfinance, hmmlearn, pandas, numpy, scikit-learn, streamlit, plotly, streamlit-javascript (browser-localStorage watchlist). Charting uses <strong>lightweight-charts</strong> v4.2.1 via CDN (no install needed). Install with <code>pip install -r requirements.txt</code>.</p>
     </div>
   </div>
 </section>
@@ -408,7 +413,7 @@
   <p>
     The core model is a <strong>7-state Gaussian Mixture Model Hidden Markov Model</strong>
     (<code>hmmlearn.hmm.GMMHMM</code>) with <strong>2 Gaussian mixture components per state</strong>
-    and full covariance matrices. Unlike a plain Gaussian HMM (one Gaussian per state),
+    and diagonal covariance matrices. Unlike a plain Gaussian HMM (one Gaussian per state),
     each GMM-HMM state models observations as a weighted blend of 2 Gaussians —
     capturing multi-modal within-state behaviour such as a Bull Run that sometimes
     produces moderate gains and sometimes explosive ones.
@@ -418,10 +423,18 @@
     <tr><th>Parameter</th><th>Value</th><th>Rationale</th></tr>
     <tr><td><code>n_components</code> (states)</td><td>7</td><td>Rich enough to distinguish micro-regimes without overfitting</td></tr>
     <tr><td><code>n_mix</code> (Gaussians / state)</td><td>2</td><td>Captures multi-modal within-state distributions</td></tr>
-    <tr><td><code>covariance_type</code></td><td><code>"full"</code></td><td>Full 4×4 covariance matrix — captures feature correlations</td></tr>
+    <tr><td><code>covariance_type</code></td><td><code>"diag"</code></td><td>Diagonal covariance — far fewer parameters than <code>"full"</code>, almost never goes singular on low-volatility assets (SPY, QQQ)</td></tr>
     <tr><td><code>n_iter</code></td><td>2000</td><td>Generous EM budget to ensure convergence</td></tr>
     <tr><td>Features fitted on</td><td>4 columns</td><td>returns, range, vol_change, trend_return</td></tr>
   </table>
+
+  <h3>Progressive Fit Fallback</h3>
+  <p>
+    If EM hits a non-positive-definite covariance matrix, the engine retries with
+    progressively simpler configurations before giving up:
+    <code>n_mix=2, diag</code> → <code>n_mix=1, diag</code> → <code>n_mix=1, spherical</code>.
+    The first configuration that fits and decodes cleanly is used.
+  </p>
 
   <h3>Auto-labelling (Option B)</h3>
   <p>
@@ -460,7 +473,7 @@
 
 <!-- ═══════════════════════ 7 SUB-STATES ══════════════ -->
 <section id="substates">
-  <h2>🔢 7 Hidden Sub-States <span class="tag-new">NEW</span></h2>
+  <h2>🔢 7 Hidden Sub-States</h2>
   <p>
     The 7 internal HMM states are ranked by mean return (lowest → highest) and collapsed
     into three tradeable regimes. The dashboard displays the current sub-state inside the
@@ -514,7 +527,7 @@
     </tr>
   </table>
 
-  <h3>Sub-state Rank Source <span class="tag-new">FIXED</span></h3>
+  <h3>Sub-state Rank Source</h3>
   <p>
     Sub-state ranks are derived directly from <code>engine.bear_states</code> and
     <code>engine.bull_states</code> — the sets frozen at fit time — rather than re-sorting
@@ -552,9 +565,9 @@
     Four features are computed from daily OHLCV data and fed into the GMM-HMM.
     All features are standardised (zero mean, unit variance) before fitting.
     Outliers beyond ±5σ are clipped to prevent HMM instability.
-    An extra <strong>150 calendar-day warmup</strong> is downloaded beyond the
-    user-selected lookback so that SMA-100 and MACD-26 are valid from bar 1.
-    Warmup rows are trimmed before backtesting.
+    An extra <strong>150 calendar-day warmup</strong> (750 days for monthly bars)
+    is downloaded beyond the user-selected lookback so that SMA-100 and MACD-26
+    are valid from bar 1. Warmup rows are trimmed before backtesting.
   </p>
 
   <table>
@@ -600,8 +613,9 @@
   <h2>🚦 Market Regimes</h2>
   <p>
     The Viterbi algorithm decodes the most likely sequence of hidden states for every bar.
-    Regimes change at most once per day (daily bar). Only the first bar of a new regime
-    triggers a trading action — ongoing regime bars have no new signal.
+    The strategy reads the per-bar labels: while flat it can enter on <em>any</em> Bull Run
+    bar with enough confirmations (not just the transition bar), and while long it exits
+    only after a confirmed streak of Bear bars.
   </p>
 
   <table>
@@ -610,19 +624,19 @@
       <td><span class="pill pill-bull">Bull Run</span></td>
       <td>Top 3 by mean return (Sub-states 5, 6, 7)</td>
       <td>Strong positive returns, expanding ATR, elevated volume, rising trend_return</td>
-      <td><strong>Enter Long</strong> on transition (if ≥ min confirmations met)</td>
+      <td><strong>Enter Long</strong> while flat (any Bull bar with ≥ min confirmations met)</td>
     </tr>
     <tr>
       <td><span class="pill pill-bear">Bear/Crash</span></td>
       <td>Bottom 2 by mean return (Sub-states 1, 2)</td>
       <td>Strongly negative returns, panic selling, liquidation cascades</td>
-      <td><strong>Exit position</strong> after <code>bear_confirm_days</code> consecutive Bear bars</td>
+      <td><strong>Exit position</strong> after <code>bear_confirm_days</code> consecutive Bear bars (min-hold gated)</td>
     </tr>
     <tr>
       <td><span class="pill pill-neutral">Neutral/Transition</span></td>
       <td>Remaining 2 (Sub-states 3, 4)</td>
       <td>Near-zero returns, sideways / consolidation / regime change</td>
-      <td><strong>No change</strong> — hold if in position, stay flat if not</td>
+      <td><strong>Hold</strong> if in position; <strong>Enter Long</strong> on a Bear→Neutral transition with ≥ min confirmations</td>
     </tr>
   </table>
 </section>
@@ -631,26 +645,30 @@
 <section id="strategy">
   <h2>⚡ Strategy Logic</h2>
 
-  <h3>Transition-Based Entry &amp; Exit</h3>
+  <h3>Entry &amp; Exit Rules</h3>
   <p>
-    Unlike "always-in" strategies that enter on every Bull bar, this system is
-    <strong>transition-triggered</strong>: actions fire only on the first bar of a new regime,
-    not on every ongoing bar. The Bear exit requires <code>bear_confirm_days</code>
-    (default <strong>5</strong>) consecutive Bear-labeled bars before closing the position —
-    preventing premature exits on single-bar noise. Once Bear is confirmed the position
-    closes immediately (no minimum hold gate).
+    While <strong>flat</strong>, the strategy enters Long on any <strong>Bull Run</strong> bar
+    where at least <code>min_confirms</code> of the enabled confirmations are met — entry is
+    not restricted to the transition bar. A <strong>Bear→Neutral transition</strong> with
+    enough confirmations also enters (early-recovery entry). While <strong>long</strong>,
+    the exit requires <code>bear_confirm_days</code> (default <strong>5</strong>) consecutive
+    Bear-labeled bars — preventing premature exits on single-bar noise — and is additionally
+    gated by <code>min_hold_days</code> (default <strong>7</strong>): a regime exit cannot
+    fire until the position has been held that many calendar days. The Bear streak keeps
+    counting while the hold gate is active, so the exit fires on the first qualifying Bear
+    bar once the hold matures. Every exit starts a 2-day re-entry cooldown, and any position
+    still open on the final bar is closed at end of data.
   </p>
 
   <table>
-    <tr><th>Transition</th><th>Position</th><th>Standard Mode</th><th>Regime-Only Mode</th></tr>
-    <tr><td>→ <span class="pill pill-bull">Bull Run</span></td><td>Flat</td><td>🟢 <strong>Enter Long</strong> (if ≥ min_confirms met)</td><td>🟢 <strong>Enter Long</strong> immediately</td></tr>
-    <tr><td>→ <span class="pill pill-bull">Bull Run</span></td><td>Long</td><td>🟢 Hold Long (already in)</td><td>🟢 Hold Long</td></tr>
-    <tr><td>→ <span class="pill pill-neutral">Neutral</span></td><td>Long</td><td>🟡 Hold Long (no change)</td><td>🟡 Hold Long (no change)</td></tr>
-    <tr><td>→ <span class="pill pill-neutral">Neutral</span></td><td>Flat</td><td>⚪ Stay flat</td><td>🟢 <strong>Enter Long</strong> (Bear→Neutral transition)</td></tr>
-    <tr><td>→ <span class="pill pill-bear">Bear/Crash</span></td><td>Long</td><td>🔴 <strong>Exit</strong> after bear_confirm_days consecutive Bear bars</td><td>🔴 <strong>Exit</strong> on first Bear bar</td></tr>
-    <tr><td>→ <span class="pill pill-bear">Bear/Crash</span></td><td>Flat</td><td>🔴 Stay in cash</td><td>🔴 Stay in cash</td></tr>
-    <tr><td>Ongoing Bull (Bull→Bull)</td><td>Long</td><td>🟢 Hold Long</td><td>🟢 Hold Long</td></tr>
-    <tr><td>Ongoing Bear (Bear→Bear)</td><td>Flat</td><td>🔴 Stay in cash (already exited)</td><td>🔴 Stay in cash (already exited)</td></tr>
+    <tr><th>Condition</th><th>Position</th><th>Standard Mode</th><th>Regime-Only Mode</th></tr>
+    <tr><td><span class="pill pill-bull">Bull Run</span> bar (transition or ongoing)</td><td>Flat</td><td>🟢 <strong>Enter Long</strong> if ≥ min_confirms met</td><td>🟢 <strong>Enter Long</strong> only on a Bear→Bull transition</td></tr>
+    <tr><td><span class="pill pill-bull">Bull Run</span> bar</td><td>Long</td><td>🟢 Hold Long</td><td>🟢 Hold Long</td></tr>
+    <tr><td>Bear→<span class="pill pill-neutral">Neutral</span> transition</td><td>Flat</td><td>🟢 <strong>Enter Long</strong> if ≥ min_confirms met</td><td>🟢 <strong>Enter Long</strong> immediately</td></tr>
+    <tr><td><span class="pill pill-neutral">Neutral</span> bar (no Bear→Neutral transition)</td><td>Flat</td><td>⚪ Stay flat</td><td>⚪ Stay flat</td></tr>
+    <tr><td><span class="pill pill-neutral">Neutral</span> bar</td><td>Long</td><td>🟡 Hold Long (no change)</td><td>🟡 Hold Long (no change)</td></tr>
+    <tr><td><span class="pill pill-bear">Bear/Crash</span> bars</td><td>Long</td><td>🔴 <strong>Exit</strong> after bear_confirm_days consecutive Bear bars (once min hold met)</td><td>🔴 <strong>Exit</strong> on first Bear bar (once min hold met)</td></tr>
+    <tr><td><span class="pill pill-bear">Bear/Crash</span> bar</td><td>Flat</td><td>🔴 Stay in cash</td><td>🔴 Stay in cash</td></tr>
   </table>
 
   <h3>Equity Mark-to-Market</h3>
@@ -720,12 +738,11 @@
   <h3>Exit Rules (Regime-Only)</h3>
   <table>
     <tr><th>Trigger</th><th>Action</th></tr>
-    <tr><td>First <span class="pill pill-bear">Bear/Crash</span> bar while long</td><td>🔴 <strong>Exit immediately</strong> on the very first Bear bar</td></tr>
-    <tr><td>Trailing stop fires (if enabled)</td><td>🔴 Exit; subject to <code>min_hold_days</code> gate</td></tr>
+    <tr><td>First <span class="pill pill-bear">Bear/Crash</span> bar while long</td><td>🔴 <strong>Exit</strong> on the very first Bear bar — once the position has been held ≥ <code>min_hold_days</code></td></tr>
   </table>
 
   <p>
-    All other sidebar controls (leverage, trailing stop, min hold days, look-back period)
+    All other sidebar controls (leverage, timeframe, look-back period, starting capital)
     remain active in Regime-Only Mode. The confirmation scorecard is still displayed for
     reference but shown with a note that it has no effect on trading.
   </p>
@@ -750,51 +767,75 @@
     <tr>
       <td>Re-entry Cooldown</td>
       <td>2 days</td>
-      <td>After any exit (Bear confirmation or trailing stop), no new entries for 2 calendar days.</td>
+      <td>After any exit, no new entries for 2 calendar days.</td>
     </tr>
     <tr>
-      <td>Trailing Stop</td>
-      <td>Disabled</td>
-      <td>Optional 2% trailing stop-loss. Toggle in dashboard sidebar. The stop tracks the highest close since entry.</td>
-    </tr>
-    <tr>
-      <td>Min Hold Days (trailing stop gate)</td>
-      <td>0</td>
-      <td>Trailing stop will not fire until the position has been held for at least this many days.</td>
+      <td>Min Hold Days</td>
+      <td>7</td>
+      <td>Sidebar slider (0–14), also searched by the optimizer. A regime exit — the Bear-streak exit, or the first-Bear-bar exit in Regime-Only Mode — cannot fire until the position has been held at least this many calendar days. 0 disables the gate. The end-of-data close-out is not affected.</td>
     </tr>
     <tr>
       <td>Min Confirmations</td>
       <td>3 / 10</td>
-      <td>Number of enabled technical checks that must be True on a Bull transition bar (Standard Mode only).</td>
+      <td>Number of enabled technical checks that must be True on a Bull bar for entry (Standard Mode only).</td>
     </tr>
   </table>
+
+  <p style="font-size:13px; color:var(--muted);">
+    The former 2% trailing stop-loss was removed from the strategy — it proved too tight for
+    most equities and is no longer part of the codebase.
+  </p>
 </section>
 
 <!-- ═══════════════════════ OPTIMIZER ══════════════════ -->
 <section id="optimizer">
   <h2>🔍 Parameter Optimizer</h2>
   <p>
-    Different assets have different volatility profiles. The Parameter Optimizer
-    grid-searches the three most impactful strategy parameters on the asset's own historical
-    data and surfaces the best combination — maximising <strong>Total Return</strong>.
+    Different assets have different volatility profiles. The Parameter Optimizer runs a
+    <strong>two-phase search</strong> on the asset's own historical data — selecting both the
+    <strong>confirmation filter set</strong> and the most impactful strategy parameters,
+    maximising <strong>Total Return</strong> and benchmarking every combination against
+    <strong>Buy &amp; Hold</strong>.
   </p>
 
-  <h3>Parameters Searched</h3>
+  <h3>Phase 1 — Confirmation Filter Selection (greedy forward)</h3>
+  <p>
+    Starting from an empty set, the optimizer iteratively adds the confirmation filter that
+    most improves total return, evaluating each candidate over a reduced grid
+    (<code>bear_confirm_days</code> ∈ {1, 2, 3, 5, 7} × <code>min_confirms</code> 1…k).
+    It tracks where return peaked across the greedy sequence and keeps that subset —
+    roughly <strong>1,100 fast simulations</strong>, no HMM refits.
+  </p>
+
+  <h3>Phase 2 — Parameter Grid Search</h3>
   <table>
     <tr><th>Parameter</th><th>Search Grid</th><th>Description</th></tr>
     <tr><td><code>bear_confirm_days</code></td><td>1, 2, 3, 4, 5, 6, 7</td><td>Consecutive Bear bars before exiting</td></tr>
-    <tr><td><code>min_confirms</code></td><td>1 → N active confirmations</td><td>Minimum technical checks required for entry</td></tr>
-    <tr><td><code>min_hold_days</code></td><td>0, 3, 5, 7, 10, 14</td><td>Minimum days held before trailing stop can fire</td></tr>
+    <tr><td><code>min_confirms</code></td><td>1 → N selected filters</td><td>Minimum technical checks required for entry</td></tr>
+    <tr><td><code>min_hold_days</code></td><td>0, 3, 5, 7, 10, 14</td><td>Minimum calendar days held before a regime exit can fire</td></tr>
   </table>
 
-  <p>Up to <strong>7 × 10 × 6 = 420 combinations</strong> are evaluated. Because the
-  HMM is fitted only once (via <code>_prepare()</code>) and reused across all combinations,
-  the full grid-search typically completes in seconds.</p>
+  <p>Up to <strong>7 × 10 × 6 = 420 combinations</strong> are evaluated with the Phase-1
+  filter set. Because the HMM is fitted only once (via <code>_prepare()</code>) and the fitted
+  engine is reused for every simulation, the full two-phase search completes quickly.</p>
+
+  <h3>Buy &amp; Hold Benchmark</h3>
+  <p>
+    Every combination is flagged on whether it beats the asset's Buy &amp; Hold return over the
+    same window. The dashboard shows a banner with how many combinations beat B&amp;H, highlights
+    the <strong>best B&amp;H-beating combo</strong> (falling back to best-overall if none beat it),
+    renders the winning confirmation-filter set as a checklist, and lists a top-10 table that
+    prefers B&amp;H-beating rows.
+  </p>
 
   <div class="metrics-row">
     <div class="metric-card">
-      <div class="label">Max Grid Size</div>
-      <div class="value">420</div>
+      <div class="label">Phase-1 Simulations</div>
+      <div class="value">~1,100</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Phase-2 Grid Size</div>
+      <div class="value">≤ 420</div>
     </div>
     <div class="metric-card">
       <div class="label">HMM Fits</div>
@@ -813,7 +854,7 @@
 
 <!-- ═══════════════════════ KERNEL FORECAST ════════════ -->
 <section id="forecast">
-  <h2>🔮 10-Day Kernel Regression Forecast <span class="tag-new">NEW</span></h2>
+  <h2>🔮 10-Day Kernel Regression Forecast</h2>
   <p>
     Instead of predicting a single price target, the forecast asks: <em>"Given today's feature
     vector, what distribution of 10-day returns did similar historical situations produce?"</em>
@@ -848,7 +889,8 @@
   <p>
     Future dates are computed as <strong>business days</strong> for equities and
     <strong>calendar days</strong> for crypto tickers (detected by suffix: <code>-USD</code>, etc.).
-    On the first bar (no prior history), the anchor falls back to using the open price.
+    All three paths are anchored to the latest close so the lines extend naturally from the
+    last candle.
   </p>
 
   <h3>Chart Rendering</h3>
@@ -881,7 +923,7 @@
 
 <!-- ═══════════════════════ SCANNER ═══════════════════ -->
 <section id="scanner">
-  <h2>🔍 Stock Screener <span class="tag-new">UPDATED</span></h2>
+  <h2>🔍 Stock Screener</h2>
   <p>
     <code>scanner.py</code> runs the same GMM-HMM pipeline on every constituent of the
     selected index universe and surfaces the stocks that have <strong>most recently entered
@@ -920,14 +962,17 @@
   <p>
     The screener is accessible via the <strong>📡 Backtester / 🔍 Stock Screener</strong>
     radio selector at the top of the sidebar. The index universe is selected from a dropdown
-    (S&amp;P 500, Nasdaq 100, Russell 2000). Results are cached for 2 hours
-    per unique parameter combination.
+    (S&amp;P 500, Nasdaq 100, Russell 2000). Results are split into
+    <strong>🟢 Fresh Entries</strong> (genuine day-1 Bull transitions) and
+    <strong>🔵 Early-Stage Bull Runs</strong> (2+ bars in but inside the freshness window),
+    followed by an entry-score distribution chart and a CSV download. Results are cached for
+    2 hours per unique parameter combination, with a "Clear Cached Results" button in the sidebar.
   </p>
 </section>
 
 <!-- ═══════════════════════ DASHBOARD ══════════════════ -->
 <section id="dashboard">
-  <h2>📡 Dashboard (Streamlit) <span class="tag-new">UPDATED</span></h2>
+  <h2>📡 Dashboard (Streamlit)</h2>
   <p>
     Running <code>streamlit run dashboard.py</code> launches the full "Regime Terminal" UI.
     The dashboard caches data for 5 minutes (300s TTL). Any sidebar change triggers an
@@ -936,8 +981,8 @@
 
   <div class="card-grid">
     <div class="card">
-      <h3>🏢 Company Profile Card <span class="tag-new">NEW</span></h3>
-      <p>Displays just below the page title: sector, industry, market cap, employee count, website link, and a business summary (truncated to 200 words). Fetched via <code>yf.Ticker.info</code> (24-hour cache). Hidden automatically for tickers with no available info (e.g. crypto).</p>
+      <h3>🏢 Company Profile Card</h3>
+      <p>Displays just below the page title: sector, industry, market cap, employee count, website link, and a business summary (truncated to 100 words). Fetched via <code>yf.Ticker.info</code> with a <code>yf.Search</code> fallback for the company name (24-hour cache); profile errors surface as a warning instead of crashing. Hidden automatically for tickers with no available info (e.g. crypto).</p>
     </div>
     <div class="card">
       <h3>🚦 Current Signal Panel</h3>
@@ -956,8 +1001,8 @@
       <p>All 10 confirmations listed in canonical order with ✅ Met / ❌ Not Met / ⏸ Disabled status badges. Disabled signals are shown in grey.</p>
     </div>
     <div class="card">
-      <h3>📈 Price Chart (TradingView-style) <span class="tag-new">UPDATED</span></h3>
-      <p>lightweight-charts v4.2.1 via CDN. Features: candlestick, regime background bands (solid wash, original green/red/amber at 0.35 opacity), no grid lines, SMA-50 overlay, volume histogram, buy/sell markers (sell shows P&L %), crosshair tooltip with <strong>prev-close day change</strong> (not open→close), and <strong>10-day kernel regression forecast</strong> (dashed amber lines + ±1σ band).</p>
+      <h3>📈 Price Chart (TradingView-style)</h3>
+      <p>lightweight-charts v4.2.1 via CDN. Features: candlestick, regime background bands (green/red/amber wash at 0.15 alpha), no grid lines, <strong>EMA-21 / EMA-50 / EMA-100 overlays</strong> (EMA-100 hidden on Monthly), volume histogram with its own axis tag and dotted last-value line, buy/sell markers (sell shows P&amp;L %) with a rule-explainer info box above the chart, an inline <strong>OHLC + volume legend chip</strong> with prev-close day change, and the <strong>10-day kernel regression forecast</strong> (dashed amber lines + ±1σ band).</p>
     </div>
     <div class="card">
       <h3>📖 Regime Descriptions</h3>
@@ -977,33 +1022,33 @@
     </div>
     <div class="card">
       <h3>🎯 Parameter Optimizer Panel</h3>
-      <p>Grid-searches <code>bear_confirm_days</code>, <code>min_confirms</code>, and <code>min_hold_days</code> to find the combination that maximises Total Return. Shows best-param cards, delta vs. current settings, and a top-10 results table.</p>
+      <p>Two-phase search: greedy confirmation-filter selection, then a grid over <code>bear_confirm_days</code>, <code>min_confirms</code>, and <code>min_hold_days</code>. Shows a Buy &amp; Hold benchmark banner, the winning filter set as a checklist, best-param cards with deltas vs. current settings and B&amp;H, and a top-10 table that prefers B&amp;H-beating combos.</p>
     </div>
   </div>
 
   <h3>Sidebar Controls</h3>
   <table>
     <tr><th>Control</th><th>Options / Range</th><th>Notes</th></tr>
-    <tr><td>Ticker Symbol</td><td>Any Yahoo Finance symbol — always displayed in ALL CAPS</td><td>Changing symbol triggers full re-run; ticker is auto-saved to watchlist</td></tr>
-    <tr><td>Watchlist Dropdown <span class="tag-new">NEW</span></td><td>Saved tickers selectbox (alphabetically sorted)</td><td>Selecting a ticker populates the input and reruns. Auto-saves any typed ticker. ➖ Remove from List button. Persisted to <code>watchlist.json</code>.</td></tr>
-    <tr><td>🔄 Refresh Data &amp; Re-run</td><td>Button — directly below Ticker Symbol</td><td>Clears data cache and re-downloads from yfinance</td></tr>
-    <tr><td>Look-back Period</td><td>365 – 1825 days (slider, step 30, <strong>default 365</strong>)</td><td>Default changed from 730 to 365</td></tr>
-    <tr><td>Leverage Factor</td><td>1× / 2× / 4× (radio)</td><td></td></tr>
-    <tr><td>Trailing Stop</td><td>Toggle on/off (2% trail)</td><td></td></tr>
-    <tr><td>Bear Confirm Days</td><td>1 – 10 (slider, default 5)</td><td>Consecutive Bear bars before position is closed</td></tr>
-    <tr><td>Min Hold Days</td><td>0 – 14 (slider, default 0)</td><td>Gates the trailing stop only</td></tr>
-    <tr><td>Starting Capital</td><td>$1,000 – $10,000,000 (number input)</td><td></td></tr>
+    <tr><td>Ticker Symbol</td><td>Any Yahoo Finance symbol — always displayed in ALL CAPS</td><td><strong>Default SPY.</strong> Changing symbol triggers full re-run; ticker is auto-added to the watchlist</td></tr>
+    <tr><td>Watchlist Dropdown</td><td>Saved tickers selectbox (alphabetically sorted)</td><td>Selecting a ticker populates the input and reruns. ➖ Remove from List button. Persisted to <strong>browser localStorage</strong> (<code>hmm_watchlist</code>) via <code>streamlit-javascript</code> — survives tab and browser restarts.</td></tr>
+    <tr><td>🔄 Refresh Data &amp; Re-run</td><td>Button — below the watchlist</td><td>Clears all Streamlit caches and re-downloads from yfinance</td></tr>
+    <tr><td>Timeframe <span class="tag-new">NEW</span></td><td>Daily / Monthly (radio)</td><td>Monthly switches to 1mo bars for long-term regime analysis and hides the EMA-100 overlay</td></tr>
+    <tr><td>Look-back Period</td><td>Daily: 365 – 1825 days (step 30, <strong>default 365</strong>) · Monthly: 3 – 20 years (<strong>default 10</strong>)</td><td>More history = better HMM training, especially for rare Bear states</td></tr>
+    <tr><td>Leverage Factor</td><td>1× / 2× / 4× (radio, default 1×)</td><td>Applied to every position's P&amp;L</td></tr>
     <tr><td>⚡ Regime-Only Mode</td><td>Toggle on/off</td><td>Bypasses all confirmation gates</td></tr>
-    <tr><td>Confirmation Filters</td><td>10 individual checkboxes + Select All / Deselect All</td><td>Disabled in Regime-Only Mode</td></tr>
-    <tr><td>Min Confirmations Required</td><td>Slider 1 → N_enabled</td><td>Disabled in Regime-Only Mode</td></tr>
-    <tr><td>🔍 Optimize for this Asset</td><td>Button</td><td>Runs grid-search; cached 1 hour per ticker</td></tr>
+    <tr><td>Bear Confirm Days</td><td>1 – 7 (slider, default 5)</td><td>Consecutive Bear bars before position is closed</td></tr>
+    <tr><td>Min Hold Days</td><td>0 – 14 (slider, default 7)</td><td>Minimum calendar days held before a regime exit can fire (0 = no minimum)</td></tr>
+    <tr><td>Starting Capital</td><td>$1,000 – $10,000,000 (number input, <strong>default $10,000</strong>)</td><td>Backtest starting equity</td></tr>
+    <tr><td>Confirmation Filters</td><td>10 individual checkboxes + Select All / Deselect All</td><td>Ignored (but still displayed) in Regime-Only Mode</td></tr>
+    <tr><td>Min Confirmations Required</td><td>Slider 1 → N_enabled (default 3)</td><td>Locks to 1 when only one filter is enabled</td></tr>
+    <tr><td>🔍 Optimize for this Asset</td><td>Button</td><td>Runs the two-phase search; cached 1 hour per ticker/settings</td></tr>
   </table>
 
   <h3>Chart Cache Architecture</h3>
   <p>
     The TradingView chart function <code>_build_tv_chart_html()</code> uses
     <code>@st.cache_data(ttl=300)</code>. Because Streamlit excludes underscore-prefixed
-    arguments from the cache key, the cache key is explicitly formed from four
+    arguments from the cache key, the cache key is explicitly formed from the
     non-underscore parameters:
   </p>
   <ul style="margin: 8px 0 0 20px; line-height: 2.2; font-size: 14px; color: var(--text);">
@@ -1011,18 +1056,21 @@
     <li><code>live_key</code> — busts cache when live price changes (e.g. <code>"83412.5"</code>)</li>
     <li><code>regime_key</code> — busts cache when last-bar regime changes (e.g. <code>"2026-03-10_Bull Run"</code>)</li>
     <li><code>prediction_json</code> — serialised kernel forecast; busts cache when forecast changes</li>
+    <li><code>interval</code> — busts cache when switching Daily ↔ Monthly</li>
   </ul>
   <p>
     This ensures the chart always reflects the current regime from <code>backtester.df</code>,
     eliminating stale-chart / fresh-signal mismatches.
   </p>
 
-  <h3>Day-Change Tooltip Fix <span class="tag-new">FIXED</span></h3>
+  <h3>OHLC Legend Chip <span class="tag-new">NEW</span></h3>
   <p>
-    The OHLC crosshair tooltip previously computed daily change as <code>close − open</code>.
-    It now computes <code>close − previous bar's close</code>, matching the convention used by
-    all professional charting platforms. A <code>prevCloseMap</code> (built from
-    <code>CANDLE_DATA</code> at chart init time) provides O(1) lookup per bar.
+    OHLC info is shown <strong>inline in the chart legend</strong> (no hover bubble): ticker,
+    date, Open / High / Low / Close, <strong>Volume</strong> (formatted K / M / B), and the
+    day change. It updates as the crosshair moves and falls back to the latest bar otherwise.
+    Day change is computed as <code>close − previous bar's close</code> — the convention used
+    by professional charting platforms — via a <code>prevCloseMap</code> built from
+    <code>CANDLE_DATA</code> at chart init time (O(1) lookup per bar).
   </p>
 </section>
 
@@ -1047,17 +1095,18 @@
   (~10–30 seconds). Subsequent loads use the 5-minute cache.</p>
 
   <h3>Requirements</h3>
-  <pre><code>yfinance
-hmmlearn
-pandas
-numpy
-scikit-learn
-streamlit
-plotly
-pandas-ta</code></pre>
+  <pre><code>yfinance&gt;=0.2.36
+hmmlearn&gt;=0.3.2
+pandas&gt;=2.0.0
+numpy&gt;=1.26.4
+scikit-learn&gt;=1.3.0
+streamlit&gt;=1.32.0
+plotly&gt;=5.18.0
+streamlit-javascript&gt;=0.1.5</code></pre>
   <p style="margin-top:8px; font-size:13px; color:var(--muted);">
     The price chart uses <strong>lightweight-charts v4.2.1</strong> loaded from the unpkg CDN
-    at runtime — no additional pip install required.
+    at runtime — no additional pip install required. <code>runtime.txt</code> pins
+    <strong>Python 3.12</strong> for Streamlit Community Cloud deployment.
   </p>
 </section>
 
