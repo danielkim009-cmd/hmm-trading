@@ -1105,8 +1105,16 @@ plotly&gt;=5.18.0
 streamlit-javascript&gt;=0.1.5</code></pre>
   <p style="margin-top:8px; font-size:13px; color:var(--muted);">
     The price chart uses <strong>lightweight-charts v4.2.1</strong> loaded from the unpkg CDN
-    at runtime — no additional pip install required. <code>runtime.txt</code> pins
-    <strong>Python 3.12</strong> for Streamlit Community Cloud deployment.
+    at runtime — no additional pip install required.
+  </p>
+  <p style="margin-top:8px; font-size:13px; color:var(--muted);">
+    <strong>Requires Python 3.10–3.12.</strong> <code>hmmlearn</code> 0.3.3 ships compiled
+    C-extension wheels only for Python 3.10–3.12; on 3.13/3.14 there is no wheel, so the app
+    fails to import (<code>_hmmc</code>) or falls back to a fragile source build.
+    <strong>Streamlit Community Cloud ignores <code>runtime.txt</code> and
+    <code>.python-version</code></strong> — set the Python version in the deploy
+    <em>Advanced settings</em> dialog (delete &amp; redeploy, choose 3.12). Those files are
+    retained only as a hint for local tooling and Heroku-style hosts.
   </p>
 </section>
 

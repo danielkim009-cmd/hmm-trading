@@ -123,7 +123,7 @@ hmm-trading/
 ├── data_loader.py        # yfinance download + feature engineering
 ├── scanner.py            # Multi-index parallel Bull Run screener
 ├── requirements.txt      # Python dependencies
-├── runtime.txt           # Python 3.12 pin for Streamlit Community Cloud
+├── runtime.txt           # Python 3.12 hint (Heroku-style; Streamlit Cloud ignores it — see note below)
 ├── watchlist.json        # Legacy saved-tickers file (gitignored — watchlist now lives in browser localStorage)
 └── project_overview.html # Detailed technical documentation (open in browser)
 ```
@@ -144,6 +144,21 @@ streamlit-javascript >= 0.1.5
 ```
 
 The price chart uses **lightweight-charts v4.2.1** loaded from the unpkg CDN — no additional install required. `streamlit-javascript` powers the browser-localStorage watchlist persistence.
+
+> **Requires Python 3.10–3.12.** `hmmlearn` 0.3.3 ships compiled C-extension wheels only for Python 3.10–3.12. On Python 3.13/3.14 there is no wheel, so the app fails to import (`_hmmc`) or falls back to a fragile source build.
+
+---
+
+## ☁️ Deploying on Streamlit Community Cloud
+
+Streamlit Community Cloud **does not read `runtime.txt` or `.python-version`** — it currently defaults to Python 3.14, which breaks `hmmlearn`. Pin the Python version in the dashboard instead:
+
+1. On [share.streamlit.io](https://share.streamlit.io), open the app's **⋮ → Settings** and note the URL/subdomain, repo, branch, and main file.
+2. **Delete** the app (the Python version can't be changed in place — it's fixed at deploy time).
+3. Click **Create app** / **Deploy**, point it at this repo, and open **Advanced settings**.
+4. Set **Python version → 3.12** (the newest version with a prebuilt `hmmlearn` wheel) and deploy.
+
+The `runtime.txt` / `.python-version` files are kept only as a Python-version hint for local tooling and other (Heroku-style) hosts.
 
 ---
 

@@ -1,8 +1,17 @@
+# Requires Python 3.10–3.12. hmmlearn 0.3.3 ships compiled C-extension wheels
+# only for cp310–cp312; Python 3.13/3.14 have no wheels, so the app either
+# fails to import (_hmmc) or falls back to a fragile source build. On Streamlit
+# Community Cloud the Python version is set in the deploy "Advanced settings"
+# dialog — runtime.txt / .python-version are NOT read by that platform.
+#
+# Upper bounds are major-version guards: they prevent a surprise numpy/pandas
+# ABI break from silently landing on a rebuild, while allowing all current
+# patch/minor updates.
 yfinance>=0.2.36
-hmmlearn>=0.3.2
-pandas>=2.0.0
-numpy>=1.26.4
-scikit-learn>=1.3.0
+hmmlearn>=0.3.2,<0.4
+pandas>=2.0.0,<3
+numpy>=1.26.4,<3
+scikit-learn>=1.3.0,<2
 streamlit>=1.32.0
 plotly>=5.18.0
 streamlit-javascript>=0.1.5
