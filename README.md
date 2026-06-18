@@ -41,7 +41,7 @@ Opens at `http://localhost:8501`. On first load it downloads ~365 days of daily 
 - **Live Quote** — real-time price via `yf.fast_info` (60-second refresh) with PST timestamp
 - **Company Profile** — sector, industry, market cap, employee count, business summary
 - **Daily or Monthly Timeframe** — daily bars (1–5 years) or monthly bars (3–20 years) for long-term regime analysis
-- **TradingView-style Price Chart** — candlestick with HMM regime background bands, EMA-21 / EMA-50 / EMA-100 overlays, volume pane, inline OHLC + volume legend chip with prev-close day change, buy/sell markers (sell shows P&L %) with an entry/exit-rule explainer, and a **10-day kernel regression forecast** with ±1σ confidence band
+- **TradingView-style Price Chart** — candlestick with HMM regime background bands, EMA-21 / EMA-50 / EMA-100 / EMA-200 overlays, volume pane, inline OHLC + volume legend chip with prev-close day change, buy/sell markers (sell shows P&L %) with an entry/exit-rule explainer, and a **10-day kernel regression forecast** with ±1σ confidence band
 - **Technical Confirmation Scorecard** — 10 configurable checks (momentum, ATR, volume, ADX, MACD, Stochastic, SMAs, RSI)
 - **Equity Curve** — strategy vs. Buy & Hold with Sharpe Ratio comparison
 - **Performance Metrics** — Total Return, Alpha, Max Drawdown, Win Rate, B&H Sharpe delta

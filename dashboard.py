@@ -1639,13 +1639,15 @@ def _build_tv_chart_html(
     vol_data    = []
     sma_data    = []
 
-    # Pre-compute EMA-21 and EMA-100 on the close series
-    # Hide EMA-100 for monthly timeframe (too few bars to be meaningful)
+    # Pre-compute EMA-21 / EMA-100 / EMA-200 on the close series
+    # Hide EMA-100 and EMA-200 for monthly timeframe (too few bars to be meaningful)
     close_series = _df["close"]
     ema21_series  = close_series.ewm(span=21,  adjust=False).mean()
     ema100_series = close_series.ewm(span=100, adjust=False).mean() if interval != "1mo" else None
+    ema200_series = close_series.ewm(span=200, adjust=False).mean() if interval != "1mo" else None
     ema21_data  = []
     ema100_data = []
+    ema200_data = []
 
     for ts, row in _df.iterrows():
         date_str = ts.strftime("%Y-%m-%d")
@@ -1674,6 +1676,10 @@ def _build_tv_chart_html(
             ema100_val = ema100_series.get(ts)
             if ema100_val is not None and pd.notna(ema100_val):
                 ema100_data.append({"time": date_str, "value": round(float(ema100_val), 2)})
+        if ema200_series is not None:
+            ema200_val = ema200_series.get(ts)
+            if ema200_val is not None and pd.notna(ema200_val):
+                ema200_data.append({"time": date_str, "value": round(float(ema200_val), 2)})
 
     # ── Regime background bands ──────────────────────────────────────────────
     regime_bands = []
@@ -1733,6 +1739,7 @@ def _build_tv_chart_html(
     sma_json     = json.dumps(sma_data)
     ema21_json   = json.dumps(ema21_data)
     ema100_json  = json.dumps(ema100_data)
+    ema200_json  = json.dumps(ema200_data)
     bands_json   = json.dumps(regime_bands)
     markers_json = json.dumps(markers)
     legend_json  = json.dumps(legend_items)
@@ -1784,6 +1791,7 @@ def _build_tv_chart_html(
   const SMA_DATA     = {sma_json};
   const EMA21_DATA   = {ema21_json};
   const EMA100_DATA  = {ema100_json};
+  const EMA200_DATA  = {ema200_json};
   const BANDS        = {bands_json};
   const MARKERS      = {markers_json};
   const LEGEND_ITEMS = {legend_json};
@@ -1804,6 +1812,7 @@ def _build_tv_chart_html(
     {{ label: 'EMA-21',  color: '#29b6f6' }},
     {{ label: 'EMA-50',  color: '#ffd740' }},
     ...(EMA100_DATA.length > 0 ? [{{ label: 'EMA-100', color: '#ab47bc' }}] : []),
+    ...(EMA200_DATA.length > 0 ? [{{ label: 'EMA-200', color: '#fa8072' }}] : []),
   ];
   emaLegendItems.forEach(item => {{
     const div = document.createElement('div');
@@ -1947,6 +1956,18 @@ def _build_tv_chart_html(
       crosshairMarkerVisible: false,
     }});
     ema100Series.setData(EMA100_DATA);
+  }}
+
+  // ── EMA-200 overlay (salmon — long-term trend) ────────────────────────────
+  if (EMA200_DATA.length > 0) {{
+    const ema200Series = chart.addLineSeries({{
+      color:                  '#fa8072',
+      lineWidth:              1,
+      priceLineVisible:       false,
+      lastValueVisible:       false,
+      crosshairMarkerVisible: false,
+    }});
+    ema200Series.setData(EMA200_DATA);
   }}
 
   // ── Volume histogram (lower pane, 20% height) ────────────────────────────
