@@ -26,6 +26,29 @@ from sklearn.preprocessing import StandardScaler
 warnings.filterwarnings("ignore")
 
 # ---------------------------------------------------------------------------
+# Logic Version — single source of truth for the whole pipeline
+# ---------------------------------------------------------------------------
+# Bump this on ANY change that can alter outputs: regime detection, state
+# labelling, features, strategy entry/exit rules, scanner scoring, or the
+# kernel forecast. Do NOT bump for UI-only / cosmetic changes.
+#   MAJOR – results not comparable to previous runs (new model/features/rules)
+#   MINOR – behaviour-changing tweak to existing logic (thresholds, weighting)
+#   PATCH – bug fix that corrects logic to behave as already documented
+# Add a matching entry at the TOP of LOGIC_CHANGELOG in the same commit.
+LOGIC_VERSION = "1.1.0"
+
+LOGIC_CHANGELOG = [
+    ("1.1.0", "2026-07-05",
+     "Kernel forecast rework: adaptive bandwidth (25th-pct distance, ESS≥30 "
+     "guard), 3-year-half-life recency decay, 10–90% weighted-quantile band "
+     "instead of Gaussian ±1σ."),
+    ("1.0.0", "2026-06-11",
+     "Baseline: 7-state GMM-HMM (diag cov, 2 mixtures), Option B labelling "
+     "(top-3 Bull / bottom-2 Bear by mean return), Option C trend_return "
+     "feature, min_hold_days enforced before regime exits."),
+]
+
+# ---------------------------------------------------------------------------
 # HMM & Strategy Constants
 # ---------------------------------------------------------------------------
 N_STATES            = 7          # number of hidden states

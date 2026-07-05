@@ -79,7 +79,10 @@ States are auto-labelled by mean return:
 - **Regime-Only Mode** — bypass confirmations entirely: enter on Bear→Bull or Bear→Neutral transitions, exit on the first Bear bar after the minimum hold
 
 ### 10-Day Kernel Regression Forecast
-For today's feature vector (`vol_surge`, `atr_ratio`, `pct_from_high`, `momentum_5d`, `regime_num`), a Gaussian kernel finds the weighted distribution of similar historical 10-day forward paths — yielding an expected price path and ±1σ confidence band displayed as dashed lines on the chart.
+For today's feature vector (`vol_surge`, `atr_ratio`, `pct_from_high`, `momentum_5d`, `regime_num`), a Gaussian kernel finds the weighted distribution of similar historical 10-day forward paths — yielding an expected price path and a 10th–90th percentile band displayed as dashed lines on the chart. The kernel uses an adaptive bandwidth (tight by default, widened only until the effective sample size reaches ~30) plus an exponential recency decay (≈3-trading-year half-life), so the forecast is conditioned on states genuinely similar to today's rather than the unconditional average drift.
+
+### Logic Versioning
+`backtester.py` defines `LOGIC_VERSION` and `LOGIC_CHANGELOG` — the single source of truth for the analytical pipeline (regime detection, labelling, strategy rules, scanner scoring, kernel forecast). The running version is shown in the dashboard sidebar (with a changelog expander) and in the Full Metrics Detail table, so you can always tell whether a deployment is on the latest logic. The version is also part of every `st.cache_data` key for the pipeline, so bumping it invalidates any cached results produced by older logic. Bump rules (documented next to the constant): **major** = results not comparable to previous runs, **minor** = behaviour-changing tweak, **patch** = bug fix; UI-only changes don't bump.
 
 ---
 

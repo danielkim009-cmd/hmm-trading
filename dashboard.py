@@ -45,6 +45,7 @@ import backtester  as bt_module
 from backtester import (
     LABEL_BULL, LABEL_BEAR, LABEL_NEUTRAL,
     INITIAL_CAPITAL, build_and_run,
+    LOGIC_VERSION, LOGIC_CHANGELOG,
 )
 from scanner import (
     get_sp500_tickers, get_nasdaq100_tickers,
@@ -142,6 +143,11 @@ with st.sidebar:
         width=60,
     )
     st.title("⚙️ Configuration")
+    st.caption(f"🧠 HMM logic **v{LOGIC_VERSION}** · {LOGIC_CHANGELOG[0][1]}")
+    with st.expander("📜 Logic changelog", expanded=False):
+        for _v, _date, _desc in LOGIC_CHANGELOG:
+            _tag = " — **latest**" if _v == LOGIC_VERSION else ""
+            st.markdown(f"**v{_v}** · {_date}{_tag}  \n{_desc}")
     st.markdown("---")
 
     # ── Page Navigation ───────────────────────────────────────────────────
@@ -558,8 +564,10 @@ _TICKER_FETCHERS = {
 
 @st.cache_data(ttl=7200, show_spinner=False)
 def run_universe_scan(universe: str, target: int, max_bars: int, lookback: int,
-                      min_conf: int, workers: int) -> pd.DataFrame:
-    """Run the HMM Bull scanner for the selected index universe. Cached for 2 hours."""
+                      min_conf: int, workers: int,
+                      logic_version: str = LOGIC_VERSION) -> pd.DataFrame:
+    """Run the HMM Bull scanner for the selected index universe. Cached for 2 hours.
+    `logic_version` is part of the cache key so a logic bump invalidates old scans."""
     tickers = _TICKER_FETCHERS[universe]()
     return run_scanner(
         tickers          = tickers,
@@ -611,7 +619,7 @@ if page == "🔍 Stock Screener":
             f"(max {scanner_max_bars} bars in Bull, {scanner_workers} threads)…  "
             "Please wait."
         ):
-            results_df = run_universe_scan(*scan_params)
+            results_df = run_universe_scan(*scan_params, LOGIC_VERSION)
         st.session_state["scan_results"] = results_df
         st.session_state["scan_params"]  = scan_params
 
@@ -843,12 +851,14 @@ def load_and_run(
     min_hold_days         : int,
     regime_only           : bool = False,
     interval              : str  = "1d",
+    logic_version         : str  = LOGIC_VERSION,
 ):
     """
     Download data, run the full HMM + backtest pipeline, and return
     the Backtester object along with the raw data.
 
-    Cache key includes all strategy params so any change triggers a re-run.
+    Cache key includes all strategy params plus `logic_version`, so any
+    change to params — or a bump of the HMM logic — triggers a re-run.
     """
     raw_df = dl.load(ticker=ticker, period_days=lookback, interval=interval)
     if raw_df.empty:
@@ -878,11 +888,13 @@ def optimize_for_asset(
     leverage              : float,
     enabled_confirms_tuple: tuple,
     capital               : float,
+    logic_version         : str = LOGIC_VERSION,
 ) -> dict:
     """
     Download data and run the parameter grid-search.
-    Cached per (ticker, lookback, leverage, confirmations, capital)
-    so repeated clicks don't re-run the expensive search.
+    Cached per (ticker, lookback, leverage, confirmations, capital,
+    logic_version) so repeated clicks don't re-run the expensive search
+    but a logic bump does invalidate stale results.
     """
     raw_df = dl.load(ticker=ticker, period_days=lookback)
     if raw_df.empty:
@@ -914,6 +926,7 @@ if optimize_btn:
             selected_leverage,
             tuple(sorted(enabled_confirmations)),
             float(initial_capital),
+            LOGIC_VERSION,
         )
     if _opt is not None:
         st.session_state["opt_result"] = _opt
@@ -939,6 +952,7 @@ with st.spinner(
         min_hold_days,
         regime_only,
         data_interval,
+        LOGIC_VERSION,
     )
 
 # ---------------------------------------------------------------------------
@@ -1487,10 +1501,11 @@ st.markdown(
 
 @st.cache_data(ttl=300, show_spinner=False)
 def compute_kernel_prediction(
-    _df       : pd.DataFrame,
-    ticker    : str,
-    regime_key: str = "",
-    n_days    : int = 10,
+    _df           : pd.DataFrame,
+    ticker        : str,
+    regime_key    : str = "",
+    n_days        : int = 10,
+    logic_version : str = LOGIC_VERSION,
 ) -> Optional[dict]:
     """
     Kernel regression predictor for post-current-state return distributions.
@@ -1498,7 +1513,21 @@ def compute_kernel_prediction(
     For today's feature vector, finds the kernel-weighted distribution of
     10-day forward price paths from similar historical states and returns:
       - expected path (kernel-weighted mean)
-      - ±1σ confidence band (kernel-weighted std)
+      - 10th–90th percentile band (weighted quantiles — robust to the skew
+        and fat tails of multi-day returns, unlike a Gaussian ±1σ band)
+
+    Weighting scheme:
+      - Gaussian kernel on z-scored state distance, with an adaptive
+        bandwidth: starts tight (25th-percentile distance) and widens only
+        until the effective sample size (1/Σw²) reaches ~30, so the forecast
+        stays genuinely state-conditional without resting on a handful of
+        overlapping neighbours.
+      - Exponential recency decay (half-life ≈ 3 trading years) so similar
+        states from decades ago count less than recent ones.
+
+    Note: consecutive forward paths overlap, so the true effective sample is
+    smaller than the ESS figure suggests; the quantile band (vs. a σ band)
+    partially compensates by not assuming Gaussian errors.
 
     Features used per bar:
       vol_surge    – today's volume / 20-day avg volume
@@ -1560,38 +1589,56 @@ def compute_kernel_prediction(
         feat_norm    = (feat_mat - means) / stds
         current_feat = feat_norm[-1]
 
-        # Gaussian kernel weights against all training points
-        dists   = np.sqrt(((feat_norm[:train_n] - current_feat) ** 2).sum(axis=1))
-        h       = float(np.median(dists)) or 1.0
-        weights = np.exp(-0.5 * (dists / h) ** 2)
+        # State distance to every training point (z-scored feature space)
+        dists = np.sqrt(((feat_norm[:train_n] - current_feat) ** 2).sum(axis=1))
 
-        # Collect n_days forward return paths
-        paths, ws = [], []
-        for i in range(train_n):
-            base = close_vals[i]
-            if base <= 0 or i + n_days >= len(close_vals):
-                continue
-            fwd = close_vals[i + 1 : i + n_days + 1]
-            if len(fwd) < n_days:
-                continue
-            paths.append(fwd / base - 1.0)
-            ws.append(weights[i])
+        # Recency decay: half-life of ~756 bars (≈ 3 trading years)
+        age     = np.arange(train_n, dtype=float)[::-1]
+        recency = 0.5 ** (age / 756.0)
 
-        if len(paths) < 10:
+        # Collect n_days forward return paths (vectorised).
+        # Window i spans close_vals[i .. i+n_days]; train_n = len - n_days
+        # guarantees every training bar has a full forward window.
+        windows = np.lib.stride_tricks.sliding_window_view(close_vals, n_days + 1)
+        windows = windows[:train_n]
+        bases   = windows[:, 0]
+        valid   = np.isfinite(windows).all(axis=1) & (bases > 0)
+        if valid.sum() < 30:
+            return None
+        paths = windows[valid, 1:] / bases[valid, None] - 1.0   # (N, n_days)
+
+        # Adaptive bandwidth: start tight so the forecast is genuinely
+        # conditional on today's state, widen only until ESS >= 30.
+        base_h = float(np.percentile(dists[valid], 25)) or float(np.median(dists[valid])) or 1.0
+        ws = None
+        for mult in (1.0, 1.5, 2.25, 3.5, 5.0):
+            w    = np.exp(-0.5 * (dists[valid] / (base_h * mult)) ** 2) * recency[valid]
+            wsum = w.sum()
+            if wsum <= 0:
+                continue
+            ws  = w / wsum
+            ess = 1.0 / float((ws ** 2).sum())
+            if ess >= 30:
+                break
+        if ws is None:
             return None
 
-        paths = np.array(paths)           # (N, n_days)
-        ws    = np.array(ws)
-        ws   /= ws.sum()
-
         mean_ret = (ws[:, None] * paths).sum(axis=0)
-        std_ret  = np.sqrt((ws[:, None] * (paths - mean_ret) ** 2).sum(axis=0))
+
+        # Weighted 10th / 90th percentile band per forecast day
+        def _wquantile(col: np.ndarray, q: float) -> float:
+            order = np.argsort(col)
+            cw    = np.cumsum(ws[order])
+            return float(np.interp(q, cw / cw[-1], col[order]))
+
+        up_ret = np.array([_wquantile(paths[:, d], 0.90) for d in range(n_days)])
+        lo_ret = np.array([_wquantile(paths[:, d], 0.10) for d in range(n_days)])
 
         # Convert cumulative returns to price levels
         anchor     = float(df["close"].iloc[-1])
         exp_prices = (anchor * (1 + mean_ret)).round(2)
-        up_prices  = (anchor * (1 + mean_ret + std_ret)).round(2)
-        lo_prices  = (anchor * (1 + mean_ret - std_ret)).round(2)
+        up_prices  = (anchor * (1 + up_ret)).round(2)
+        lo_prices  = (anchor * (1 + lo_ret)).round(2)
 
         # Future dates – business days for equities, calendar days for crypto
         last_date = _df.index[-1]
@@ -2113,7 +2160,9 @@ _last_regime = str(df_chart["regime_label"].iloc[-1]) if "regime_label" in df_ch
 _last_date   = df_chart.index[-1].strftime("%Y-%m-%d")
 regime_key   = f"{_last_date}_{_last_regime}"
 
-_prediction      = compute_kernel_prediction(df_chart, ticker_symbol, regime_key=regime_key)
+_prediction      = compute_kernel_prediction(
+    df_chart, ticker_symbol, regime_key=regime_key, logic_version=LOGIC_VERSION,
+)
 _prediction_json = json.dumps(_prediction) if _prediction else "null"
 
 chart_html = _build_tv_chart_html(
@@ -2285,6 +2334,7 @@ with st.expander("📐 Full Metrics Detail"):
         {"Metric": "Bear Confirm Days",         "Value": f"{backtester.bear_confirm_days} consecutive Bear bars"},
         {"Metric": "Min Hold Period",           "Value": f"{backtester.min_hold_days} days"},
         {"Metric": "Cooldown Period",           "Value": "2 days after exit"},
+        {"Metric": "HMM Logic Version",         "Value": f"v{LOGIC_VERSION} ({LOGIC_CHANGELOG[0][1]})"},
     ])
     st.dataframe(detail_df, use_container_width=True, hide_index=True)
 
